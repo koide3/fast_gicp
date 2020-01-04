@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>fast_gicp</name>
+  <version>0.0.0</version>
+  <description>A collection of fast point cloud registration implementations</description>
+
+  <maintainer email="k.koide@aist.go.jp">k.koide</maintainer>
+
+  <license>GPLv3</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>pcl_ros</build_depend>
+
+  <export>
+  </export>
+</package>

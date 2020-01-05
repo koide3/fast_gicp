@@ -1,5 +1,5 @@
-#ifndef FAST_GICP_DERIVATIVES_HPP
-#define FAST_GICP_DERIVATIVES_HPP
+#ifndef GICP_DERIVATIVES_HPP
+#define GICP_DERIVATIVES_HPP
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>

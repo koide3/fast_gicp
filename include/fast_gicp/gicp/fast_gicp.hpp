@@ -96,6 +96,7 @@ private:
   }
 
   double loss(const Eigen::Matrix<double, 6, 1>& x, Eigen::Matrix<double, 1, 6>* J = nullptr) const {
+    std::cout << ">> loss" << std::endl;
     Eigen::Matrix3d R = Sophus::SO3d::exp(x.head<3>()).matrix();
     Eigen::Vector3d t = x.tail<3>();
 

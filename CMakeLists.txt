@@ -21,6 +21,7 @@ catkin_package(
 
 include_directories(
   include
+  thirdparty/LBFGSpp/include
   ${catkin_INCLUDE_DIRS}
 )
 

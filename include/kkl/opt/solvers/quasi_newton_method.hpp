@@ -8,6 +8,7 @@
 #include <kkl/opt/optimizer.hpp>
 #include <kkl/opt/numerical.hpp>
 #include <kkl/opt/solvers/nelder_mead.hpp>
+#include <kkl/opt/solvers/backtracking_search.hpp>
 #include <kkl/opt/solvers/golden_section_search.hpp>
 
 namespace kkl {
@@ -34,8 +35,6 @@ public:
     Result result;
     VectorN x = x0;
 
-    VectorN j = jacobian(x).transpose();
-    // MatrixN B = MatrixN::Identity();
     MatrixN B_inv = MatrixN::Identity();
     for (int i = 0; i < criteria.max_iterations; i++) {
       if(this->before_optimization) {
@@ -50,9 +49,13 @@ public:
         p.normalize();
       }
 
-      GoldenSectionSearch<Scalar> line_search([&](Scalar alpha) { return this->function(x + p * alpha); });
+      Scalar f0 = this->function(x);
+      Scalar jnorm = j.norm();
+
+      BackTrackingSearch<Scalar> line_search([&](Scalar alpha) { return this->function(x + p * alpha); }, f0, jnorm);
+      // GoldenSectionSearch<Scalar> line_search([&](Scalar alpha) { return this->function(x + p * alpha); });
       // NelderMeadLineSearch<Scalar> line_search([&](Scalar alpha) { return this->function(x + p * alpha); });
-      Scalar alpha = line_search.minimize(0.0, 1.0, TerminationCriteria(10));
+      Scalar alpha = line_search.minimize(0.0, 0.5, TerminationCriteria(10, 1e-3));
 
       VectorN s = alpha * p;
       x = x + s;

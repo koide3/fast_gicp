@@ -11,7 +11,7 @@ find_package(PCL REQUIRED)
 ## catkin specific configuration ##
 ###################################
 catkin_package(
-  INCLUDE_DIRS include
+  INCLUDE_DIRS include thidparty/Sophus
   LIBRARIES fast_gicp
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
@@ -23,7 +23,7 @@ catkin_package(
 
 include_directories(
   include
-  thirdparty/LBFGSpp/include
+  thirdparty/Sophus
   ${catkin_INCLUDE_DIRS}
 )
 

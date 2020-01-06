@@ -29,10 +29,10 @@ bool test() {
   };
 
   auto t1 = std::chrono::high_resolution_clock::now();
-  Eigen::MatrixXd nj;
-  for(int i = 0; i < 8192; i++) {
-    nj = kkl::opt::numerical_jacobian(f, x);
-  } 
+  Eigen::MatrixXd nj = kkl::opt::numerical_jacobian(f, x);
+  // for(int i = 0; i < 8192; i++) {
+  //   nj = kkl::opt::numerical_jacobian(f, x);
+  // }
   auto t2 = std::chrono::high_resolution_clock::now();
 
   Eigen::Matrix3d R = Sophus::SO3d::exp(x.head<3>()).matrix();
@@ -44,9 +44,9 @@ bool test() {
 
   auto t3 = std::chrono::high_resolution_clock::now();
   Eigen::Matrix<double, 1, 12> jloss;
-  for(int i = 0; i < 8192; i++) {
+  // for(int i = 0; i < 8192; i++) {
     gicp_loss(mean_A, cov_A, mean_B, cov_B, R, t, &jloss);
-  } 
+  // }
 
   auto aj = jloss * jexp;
   auto t4 = std::chrono::high_resolution_clock::now();

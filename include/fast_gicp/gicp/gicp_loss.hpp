@@ -16,7 +16,7 @@ double gicp_loss(const Eigen::Vector3d& mean_A, const Eigen::Matrix3d& cov_A, co
 }
 */
 
-double gicp_loss(const Eigen::Vector3d& mean_A, const Eigen::Matrix3d& cov_A, const Eigen::Vector3d& mean_B, const Eigen::Matrix3d& cov_B, const Eigen::Matrix3d& R, const Eigen::Vector3d& t, Eigen::Matrix<double, 1, 12>* J = nullptr) {
+double gicp_loss(const Eigen::Vector3d& mean_A, const Eigen::Matrix3d& cov_A, const Eigen::Vector3d& mean_B, const Eigen::Matrix3d& cov_B, const Eigen::Matrix3d& R, const Eigen::Vector3d& t, Eigen::Matrix<double, 1, 12>* J = nullptr, bool cov_derivative=false) {
   Eigen::Vector3d d = mean_B - (R * mean_A + t);
 
   Eigen::Matrix3d RCR = cov_B + R * cov_A * R.transpose();

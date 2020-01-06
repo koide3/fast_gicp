@@ -15,11 +15,13 @@ class BFGS : public QuasiNewtonMethod<Scalar, N> {
 public:
   using typename Optimizer<Scalar, N>::Function;
   using typename Optimizer<Scalar, N>::Jacobian;
+  using typename Optimizer<Scalar, N>::FunctionJacobian;
 
   using typename Optimizer<Scalar, N>::VectorN;
   using typename Optimizer<Scalar, N>::MatrixN;
 
   BFGS(const Function& f, const Jacobian& j = nullptr) : QuasiNewtonMethod<Scalar, N>(f, j) {}
+  BFGS(const FunctionJacobian& fj) : QuasiNewtonMethod<Scalar, N>(fj) {}
 
   virtual MatrixN update_B_inv(const MatrixN& B_inv, const VectorN& s, const VectorN& y) const override {
     auto b_inv1 = (s.transpose() * y + y.transpose() * B_inv * y)(0, 0) * (s * s.transpose()) / std::pow(s.transpose() * y, 2);

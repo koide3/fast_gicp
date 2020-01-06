@@ -29,36 +29,27 @@ int main(int argc, char** argv) {
   voxelgrid.filter(*filtered);
   src_cloud = filtered;
 
-  gicp::FastGeneralizedIterativeClosestPoint icp;
-  icp.set_input_target(tgt_cloud);
-  icp.set_input_source(src_cloud);
-
-  Eigen::Matrix4d estimated = icp.align();
+  pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZI, pcl::PointXYZI> gicp2;
+  gicp2.setInputSource(src_cloud);
+  gicp2.setInputTarget(tgt_cloud);
 
   pcl::PointCloud<pcl::PointXYZI>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZI>());
-  pcl::transformPointCloud(*src_cloud, *aligned, estimated.cast<float>());
+  gicp2.align(*aligned);
 
-  pcl::PointCloud<pcl::PointXYZI>::Ptr aligned2(new pcl::PointCloud<pcl::PointXYZI>());
-  pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZI, pcl::PointXYZI> gicp2;
-  gicp2.setInputTarget(tgt_cloud);
-  gicp2.setInputSource(src_cloud);
-  gicp2.align(*aligned2);
+  Eigen::Matrix4f model_matrix = gicp2.getFinalTransformation();
 
-  std::cout << "--- matrix1 ---" << std::endl << estimated << std::endl;
-  std::cout << "--- matrix2 ---" << std::endl << gicp2.getFinalTransformation() << std::endl;
+  auto viewer = guik::LightViewer::instance();
+  viewer->update_drawable("pclgicp", std::make_shared<glk::PointCloudBuffer>(aligned), guik::ShaderSetting().add("color_mode", 1).add("material_color", Eigen::Vector4f(0.0f, 0.0f, 1.0f, 1.0f)));
 
-  pcl::visualization::PCLVisualizer vis;
+  fast_gicp::FastGICP<pcl::PointXYZI, pcl::PointXYZI> gicp;
+  gicp.setInputSource(src_cloud);
+  gicp.setInputTarget(tgt_cloud);
 
-  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZI> tgt_handler(tgt_cloud, 255, 0, 0);
-  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZI> src_handler(src_cloud, 0, 255, 0);
-  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZI> aligned_handler(aligned, 0, 0, 255);
-  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZI> aligned2_handler(aligned, 0, 255, 255);
+  aligned.reset(new pcl::PointCloud<pcl::PointXYZI>());
+  gicp.align(*aligned);
 
-  vis.addPointCloud(tgt_cloud, tgt_handler, "tgt");
-  vis.addPointCloud(src_cloud, src_handler, "src");
-  vis.addPointCloud(aligned, aligned_handler, "aligned");
-  vis.addPointCloud(aligned2, aligned2_handler, "aligned2");
-  vis.spin();
+  // Eigen::Matrix4d estimated = icp.align();
+
 
   return 0;
 }

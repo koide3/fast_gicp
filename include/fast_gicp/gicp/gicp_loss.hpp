@@ -4,49 +4,44 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-#include <fast_gicp/gicp/gicp_derivatives.hpp>
+namespace fast_gicp {
 
-namespace gicp {
-
-/*
-double gicp_loss(const Eigen::Vector3d& mean_A, const Eigen::Matrix3d& cov_A, const Eigen::Vector3d& mean_B, const Eigen::Matrix3d& cov_B, const Eigen::Matrix3d& R, const Eigen::Vector3d& t) {
-  Eigen::Vector3d d = mean_B - (R * mean_A - t);
-  Eigen::Matrix3d C = (cov_B + R * cov_A * R.transpose()).inverse();
-  return d.dot(C * d);
+/**
+ * f(x) = mean_B - (R * mean_A + t)
+ * x = [r00, r10, ..., r22, t0, t1, t2]
+ */
+Eigen::Matrix<float, 4, 12> dtransform(const Eigen::Vector4f& mean_A, const Eigen::Vector4f& mean_B) {
+  Eigen::Matrix<float, 4, 12> J = Eigen::Matrix<float, 4, 12>::Zero();
+  J.block<4, 4>(0, 0).diagonal().array() = -mean_A[0];
+  J.block<4, 4>(0, 3).diagonal().array() = -mean_A[1];
+  J.block<4, 4>(0, 6).diagonal().array() = -mean_A[2];
+  J.block<4, 4>(0, 9) = -Eigen::Matrix4f::Identity();
+  J.block<1, 12>(3, 0).setZero();
+  return J;
 }
-*/
 
-double gicp_loss(const Eigen::Vector3d& mean_A, const Eigen::Matrix3d& cov_A, const Eigen::Vector3d& mean_B, const Eigen::Matrix3d& cov_B, const Eigen::Matrix3d& R, const Eigen::Vector3d& t, Eigen::Matrix<double, 1, 12>* J = nullptr) {
-  Eigen::Vector3d d = mean_B - (R * mean_A + t);
+double gicp_loss(const Eigen::Vector4f& mean_A, const Eigen::Matrix4f& cov_A, const Eigen::Vector4f& mean_B, const Eigen::Matrix4f& cov_B, const Eigen::Matrix4f& Rt, Eigen::Matrix<float, 1, 12>* J = nullptr) {
+  Eigen::Vector4f d = mean_B - Rt * mean_A;
 
-  Eigen::Matrix3d RCR = cov_B + R * cov_A * R.transpose();
-  Eigen::Matrix3d RCR_inv = RCR.inverse();
+  Eigen::Matrix4f RCR = cov_B + Rt * cov_A * Rt.transpose();
+  RCR(3, 3) = 1;
+  Eigen::Matrix4f RCR_inv = RCR.inverse();
 
-  Eigen::Vector3d RCRd = RCR_inv * d;
+  Eigen::Vector4f RCRd = RCR_inv * d;
   double loss = d.dot(RCRd);
 
   if(!J) {
     return loss;
   }
 
-  Eigen::Matrix<double, 3, 12> jd = dtransform(mean_A, mean_B, R, t);
-  Eigen::Matrix<double, 9, 9> jRCR_inv = dmat_inv(RCR) * dRCR(R, cov_A);
+  Eigen::Matrix<float, 4, 12> jd = dtransform(mean_A, mean_B);
+  Eigen::Matrix<float, 4, 12> jRCRd = RCR_inv * jd;
 
-  Eigen::Matrix<double, 3, 12> jRCRd = Eigen::Matrix<double, 3, 12>::Zero();
-  for(int i = 0; i < 9; i++) {
-    Eigen::Matrix3d jc_block = Eigen::Map<Eigen::Matrix3d>(jRCR_inv.col(i).data());
-    Eigen::Vector3d jt_block = jd.col(i);
-    Eigen::Vector3d jd = jc_block * d + RCR_inv * jt_block;
-    jRCRd.col(i) = jd;
-  }
-  jRCRd.block<3, 3>(0, 9) = RCR_inv * jd.block<3, 3>(0, 9);
-
-  for(int i = 0; i < 12; i++) {
-    (*J)[i] = jd.col(i).dot(RCRd) + d.dot(jRCRd.col(i));
-  }
+  *J = RCRd.transpose() * jd + d.transpose() * jRCRd;
 
   return loss;
 }
-}  // namespace gicp
+
+}  // namespace fast_gicp
 
 #endif

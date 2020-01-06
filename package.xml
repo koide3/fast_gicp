@@ -11,6 +11,7 @@
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>pcl_ros</build_depend>
+  <build_depend>gl_test_field</build_depend>
 
   <export>
   </export>

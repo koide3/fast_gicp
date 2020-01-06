@@ -9,14 +9,14 @@ namespace kkl {
 namespace opt {
 
 template <typename Scalar>
-class NelderMeadLineSearch : public LineSearch<Scalar> {
+class NelderMeadLineSearch : public LineSearch {
 public:
-  NelderMeadLineSearch(const std::function<Scalar(Scalar)>& f) : LineSearch<Scalar>(f), alpha(1.0), gamma(2.0), rho(0.5), sigma(0.5) {}
+  NelderMeadLineSearch(const std::function<double(double)>& f) : LineSearch(f), alpha(1.0), gamma(2.0), rho(0.5), sigma(0.5) {}
   virtual ~NelderMeadLineSearch() override {}
 
-  virtual Scalar minimize(Scalar x0, Scalar x1, const TerminationCriteria& criteria = TerminationCriteria()) override {
-    std::array<Scalar, 2> x = {x0, x1};
-    std::array<Scalar, 2> y = {this->function(x0), this->function(x1)};
+  virtual double minimize(double x0, double x1, const TerminationCriteria& criteria = TerminationCriteria()) override {
+    std::array<double, 2> x = {x0, x1};
+    std::array<double, 2> y = {this->function(x0), this->function(x1)};
 
     for (int i = 0; i < criteria.max_iterations; i++) {
       if (y[1] < y[0]) {
@@ -28,19 +28,19 @@ public:
         break;
       }
 
-      Scalar xo = x[0];
-      Scalar yo = y[0];
+      double xo = x[0];
+      double yo = y[0];
 
-      Scalar xr = xo + alpha * (xo - x.back());
-      Scalar yr = this->function(xr);
+      double xr = xo + alpha * (xo - x.back());
+      double yr = this->function(xr);
 
       if (y[0] <= yr && yr < y[0]) {
         // this never happen?
         x.back() = xr;
         y.back() = yr;
       } else if (yr < y[0]) {
-        Scalar xe = xo + gamma * (xo - x.back());
-        Scalar ye = this->function(xe);
+        double xe = xo + gamma * (xo - x.back());
+        double ye = this->function(xe);
 
         if (yr < yr) {
           x.back() = xe;
@@ -50,8 +50,8 @@ public:
           y.back() = yr;
         }
       } else {
-        Scalar xc = xo + rho * (xo - x.back());
-        Scalar yc = this->function(xc);
+        double xc = xo + rho * (xo - x.back());
+        double yc = this->function(xc);
 
         if (yc < y.back()) {
           x.back() = xc;
@@ -66,16 +66,16 @@ public:
     return x[0];
   }
 
-  bool is_converged(const std::array<Scalar, 2>& x, const TerminationCriteria& criteria) {
-    Scalar diff = std::abs(x[0] - x[1]);
+  bool is_converged(const std::array<double, 2>& x, const TerminationCriteria& criteria) {
+    double diff = std::abs(x[0] - x[1]);
     return diff < criteria.eps;
   }
 
 private:
-  const Scalar alpha;
-  const Scalar gamma;
-  const Scalar rho;
-  const Scalar sigma;
+  const double alpha;
+  const double gamma;
+  const double rho;
+  const double sigma;
 };
 
 template <typename Scalar, int N>

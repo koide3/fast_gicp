@@ -7,142 +7,184 @@
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <pcl/search/kdtree.h>
+#include <pcl/registration/registration.h>
 
 #include <sophus/so3.hpp>
 
 #include <kkl/opt/solvers/bfgs.hpp>
-#include <kkl/opt/solvers/nelder_mead.hpp>
 
 #include <fast_gicp/gicp/gicp_loss.hpp>
 #include <fast_gicp/so3/so3_derivatives.hpp>
 
-namespace gicp {
+#include <glk/pointcloud_buffer.hpp>
+#include <guik/viewer/light_viewer.hpp>
 
-class FastGeneralizedIterativeClosestPoint {
+namespace fast_gicp {
+
+template<typename PointSource, typename PointTarget>
+class FastGICP : public pcl::Registration<PointSource, PointTarget, float> {
 public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  FastGeneralizedIterativeClosestPoint() {}
-  virtual ~FastGeneralizedIterativeClosestPoint() {}
+  using Scalar = float;
+  using Matrix4 = typename pcl::Registration<PointSource, PointTarget, Scalar>::Matrix4;
 
-  void set_input_target(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& cloud) {
-    tgt_cloud = cloud;
-    calculate_covariances(cloud, tgt_kdtree, tgt_covs);
+  using PointCloudSource = typename pcl::Registration<PointSource, PointTarget, Scalar>::PointCloudSource;
+  using PointCloudSourcePtr = typename PointCloudSource::Ptr;
+  using PointCloudSourceConstPtr = typename PointCloudSource::ConstPtr;
+
+  using PointCloudTarget = typename pcl::Registration<PointSource, PointTarget, Scalar>::PointCloudTarget;
+  using PointCloudTargetPtr = typename PointCloudTarget::Ptr;
+  using PointCloudTargetConstPtr = typename PointCloudTarget::ConstPtr;
+
+  using pcl::Registration<PointSource, PointTarget, Scalar>::reg_name_;
+  using pcl::Registration<PointSource, PointTarget, Scalar>::input_;
+  using pcl::Registration<PointSource, PointTarget, Scalar>::target_;
+
+  using pcl::Registration<PointSource, PointTarget, Scalar>::nr_iterations_;
+  using pcl::Registration<PointSource, PointTarget, Scalar>::max_iterations_;
+  using pcl::Registration<PointSource, PointTarget, Scalar>::final_transformation_;
+  using pcl::Registration<PointSource, PointTarget, Scalar>::transformation_epsilon_;
+  using pcl::Registration<PointSource, PointTarget, Scalar>::converged_;
+  using pcl::Registration<PointSource, PointTarget, Scalar>::corr_dist_threshold_;
+
+  FastGICP() {
+    reg_name_ = "FastGICP";
+  }
+  virtual ~FastGICP() override {
+    max_iterations_ = 64;
+    transformation_epsilon_ = 5e-4;
+    // corr_dist_threshold_ = 1.0;
+    corr_dist_threshold_ = std::numeric_limits<float>::max();
   }
 
-  void set_input_source(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& cloud) {
-    src_cloud = cloud;
-    calculate_covariances(cloud, src_kdtree, src_covs);
+  virtual void setInputSource(const PointCloudSourceConstPtr& cloud) override {
+    pcl::Registration<PointSource, PointTarget, Scalar>::setInputSource(cloud);
+    calculate_covariances(cloud, source_kdtree, source_covs);
   }
 
-  Eigen::Matrix4d align() {
-    Eigen::Matrix4d initial_guess = Eigen::Matrix4d::Identity();
-    return align(initial_guess);
+  virtual void setInputTarget(const PointCloudTargetConstPtr& cloud) override {
+    pcl::Registration<PointSource, PointTarget, Scalar>::setInputTarget(cloud);
+    calculate_covariances(cloud, target_kdtree, target_covs);
   }
 
-  Eigen::Matrix4d align(Eigen::Matrix4d& initial_guess) {
-    Eigen::Matrix<double, 6, 1> x0;
-    x0.head<3>() = Sophus::SO3d(initial_guess.block<3, 3>(0, 0)).log();
-    x0.tail<3>() = initial_guess.block<3, 1>(0, 3);
-
-    auto f = [this](const Eigen::Matrix<double, 6, 1>& x) { return loss(x); };
-    auto j = [this](const Eigen::Matrix<double, 6, 1>& x) {
-      Eigen::Matrix<double, 1, 6> J;
-      loss(x, &J);
-      return J;
-    };
-    auto before_optimization = [this](const Eigen::Matrix<double, 6, 1>& x) {
-      std::cout << "update correspondences" << std::endl;
-      update_correspondences(x);
-    };
-    auto callback = [this](const Eigen::Matrix<double, 6, 1>& x) { std::cout << loss(x) << ":" << x.transpose() << std::endl; };
-
-    kkl::opt::BFGS<double, 6> solver(f, j);
-    solver.set_callback(callback);
-    solver.set_before_optimization_callback(before_optimization);
+protected:
+  virtual void computeTransformation(PointCloudSource& output, const Matrix4& guess) override {
+    Eigen::Matrix<float, 6, 1> x0;
+    x0.head<3>() = Sophus::SO3f(guess.template block<3, 3>(0, 0)).log();
+    x0.tail<3>() = guess.template block<3, 1>(0, 3);
 
     update_correspondences(x0);
-    auto result = solver.optimize(x0, kkl::opt::TerminationCriteria(32, 1e-8));
 
-    Eigen::Matrix4d estimated = Eigen::Matrix4d::Identity();
-    estimated.block<3, 3>(0, 0) = Sophus::SO3d::exp(result.x.head<3>()).matrix();
-    estimated.block<3, 1>(0, 3) = result.x.tail<3>();
+    auto viewer = guik::LightViewer::instance();
+    viewer->update_drawable("target", std::make_shared<glk::PointCloudBuffer>(target_), guik::ShaderSetting().add("color_mode", 1).add("material_color", Eigen::Vector4f(1.0f, 0.0f, 0.0f, 1.0f)));
 
-    return estimated;
+    auto f = [this](const Eigen::Matrix<float, 6, 1>& x) { return loss(x); };
+    auto fj = [this](const Eigen::Matrix<float, 6, 1>& x, Eigen::Matrix<float, 1, 6>* J) { return loss(x, J); };
+    auto callback = [this](const Eigen::Matrix<float, 6, 1>& x) {
+      update_correspondences(x);
+      final_transformation_.setIdentity();
+      final_transformation_.template block<3, 3>(0, 0) = Sophus::SO3f::exp(x.head<3>()).matrix();
+      final_transformation_.template block<3, 1>(0, 3) = x.tail<3>();
+
+      auto viewer = guik::LightViewer::instance();
+      viewer->update_drawable("source", std::make_shared<glk::PointCloudBuffer>(input_), guik::ShaderSetting().add("color_mode", 1).add("material_color", Eigen::Vector4f(0.0f, 1.0f, 0.0f, 1.0f)).add("model_matrix", final_transformation_));
+
+      bool kill_switch = false;
+
+      viewer->register_ui_callback("kill_switch", [&]() { kill_switch = ImGui::Button("kill_switch"); });
+      viewer->spin_once();
+    };
+
+    kkl::opt::BFGS<float, 6> optimizer(f);
+    optimizer.set_callback(callback);
+    auto result = optimizer.optimize(x0, kkl::opt::TerminationCriteria(64, 1e-6));
+    nr_iterations_ = result.num_iterations;
+
+    /*
+    for(int i = 0; i < 8192; i++) {
+      Eigen::Matrix<float, 1, 6> J;
+      loss(x0, &J);
+      x0 -= J.normalized() * 1e-3;
+      callback(x0);
+    }
+    */
+
+    viewer->spin();
+
+    final_transformation_.setIdentity();
+    final_transformation_.template block<3, 3>(0, 0) = Sophus::SO3f::exp(x0.head<3>()).matrix();
+    final_transformation_.template block<3, 1>(0, 3) = x0.tail<3>();
+
+    pcl::transformPointCloud(*input_, output, final_transformation_);
   }
 
 private:
-  void update_correspondences(const Eigen::Matrix<double, 6, 1>& x) {
-    Eigen::Matrix3d R = Sophus::SO3d::exp(x.head<3>()).matrix();
-    Eigen::Vector3d t = x.tail<3>();
-
+  void update_correspondences(const Eigen::Matrix<float, 6, 1>& x) {
     Eigen::Matrix4f trans = Eigen::Matrix4f::Identity();
-    trans.block<3, 3>(0, 0) = R.cast<float>();
-    trans.block<3, 1>(0, 3) = t.cast<float>();
+    trans.block<3, 3>(0, 0) = Sophus::SO3f::exp(x.head<3>()).matrix();
+    trans.block<3, 1>(0, 3) = x.tail<3>();
 
-    correspondences.resize(src_cloud->size());
-    sq_distances.resize(src_cloud->size());
+    correspondences.resize(input_->size());
+    sq_distances.resize(input_->size());
 
-    for(int i = 0; i < src_cloud->size(); i++) {
-      pcl::PointXYZI pt;
-      pt.getVector4fMap() = trans * src_cloud->at(i).getVector4fMap();
+    for(int i = 0; i < input_->size(); i++) {
+      PointTarget pt;
+      pt.getVector4fMap() = trans * input_->at(i).getVector4fMap();
 
       std::vector<int> k_indices;
       std::vector<float> k_sq_dists;
-      tgt_kdtree.nearestKSearch(pt, 1, k_indices, k_sq_dists);
+      target_kdtree.nearestKSearch(pt, 1, k_indices, k_sq_dists);
 
       correspondences[i] = k_indices[0];
       sq_distances[i] = k_sq_dists[0];
     }
   }
 
-  double loss(const Eigen::Matrix<double, 6, 1>& x, Eigen::Matrix<double, 1, 6>* J = nullptr) const {
-    std::cout << ">> loss" << std::endl;
-    Eigen::Matrix3d R = Sophus::SO3d::exp(x.head<3>()).matrix();
-    Eigen::Vector3d t = x.tail<3>();
+  double loss(const Eigen::Matrix<float, 6, 1>& x, Eigen::Matrix<float, 1, 6>* J = nullptr) const {
+    std::cout << "loss" << std::endl;
 
     Eigen::Matrix4f trans = Eigen::Matrix4f::Identity();
-    trans.block<3, 3>(0, 0) = R.cast<float>();
-    trans.block<3, 1>(0, 3) = t.cast<float>();
+    trans.block<3, 3>(0, 0) = Sophus::SO3f::exp(x.head<3>()).matrix();
+    trans.block<3, 1>(0, 3) = x.tail<3>();
 
     double loss = 0.0;
-
     Eigen::Matrix<double, 1, 12> sum_jloss = Eigen::Matrix<double, 1, 12>::Zero();
 
-    for(int i = 0; i < src_cloud->size(); i++) {
-      int tgt_index = correspondences[i];
+    for(int i = 0; i < input_->size(); i++) {
+      int target_index = correspondences[i];
       float sq_dist = sq_distances[i];
 
-      if(sq_dist > 1.0) {
+      if(sq_dist > corr_dist_threshold_ * corr_dist_threshold_) {
         continue;
       }
 
-      Eigen::Vector3d mean_A = src_cloud->at(i).getVector3fMap().cast<double>();
-      Eigen::Matrix3d cov_A = src_covs[i];
+      Eigen::Vector4f mean_A = input_->at(i).getVector4fMap();
+      const auto& cov_A = source_covs[i];
 
-      Eigen::Vector3d mean_B = tgt_cloud->at(tgt_index).getVector3fMap().cast<double>();
-      Eigen::Matrix3d cov_B = tgt_covs[tgt_index];
+      Eigen::Vector4f mean_B = target_->at(target_index).getVector4fMap();
+      const auto& cov_B = target_covs[target_index];
 
       if(J) {
-        Eigen::Matrix<double, 1, 12> jloss = Eigen::Matrix<double, 1, 12>::Zero();
-        loss += gicp_loss(mean_A, cov_A, mean_B, cov_B, R, t, &jloss);
-        sum_jloss += jloss;
+        Eigen::Matrix<float, 1, 12> jloss = Eigen::Matrix<float, 1, 12>::Zero();
+        loss += fast_gicp::gicp_loss(mean_A, cov_A, mean_B, cov_B, trans, &jloss);
+        sum_jloss += jloss.cast<double>();
       } else {
-        loss += gicp_loss(mean_A, cov_A, mean_B, cov_B, R, t);
+        loss += fast_gicp::gicp_loss(mean_A, cov_A, mean_B, cov_B, trans);
       }
     }
 
     if(J) {
-      Eigen::Matrix<double, 12, 6> jexp = Eigen::Matrix<double, 12, 6>::Zero();
-      jexp.block<9, 3>(0, 0) = dso3_exp(x.head<3>());
-      jexp.block<3, 3>(9, 3) = Eigen::Matrix3d::Identity();
+      Eigen::Matrix<float, 12, 6> jexp = Eigen::Matrix<float, 12, 6>::Zero();
+      jexp.block<9, 3>(0, 0) = fast_gicp::dso3_exp(x.head<3>());
+      jexp.block<3, 3>(9, 3) = Eigen::Matrix3f::Identity();
 
-      (*J) = sum_jloss * jexp;
+      (*J) = sum_jloss.cast<float>() * jexp;
     }
 
     return loss;
   }
 
-  bool calculate_covariances(const pcl::PointCloud<pcl::PointXYZI>::ConstPtr& cloud, pcl::search::KdTree<pcl::PointXYZI>& kdtree, std::vector<Eigen::Matrix3d, Eigen::aligned_allocator<Eigen::Matrix3d>>& covariances) {
+  template<typename PointT>
+  bool calculate_covariances(const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>>& covariances) {
     kdtree.setInputCloud(cloud);
     covariances.resize(cloud->size());
 
@@ -152,31 +194,17 @@ private:
       kdtree.nearestKSearch(cloud->at(i), 20, k_indices, k_sq_distances);
 
       Eigen::Vector3d mean = Eigen::Vector3d::Zero();
-      auto& cov = covariances[i];
-      cov.setZero();
+      Eigen::Matrix3d cov = Eigen::Matrix3d::Zero();
 
       Eigen::Matrix<double, 3, 20> data;
 
       for(int j = 0; j < k_indices.size(); j++) {
         const auto& pt = cloud->at(k_indices[j]);
-        data.col(j) = pt.getVector3fMap().cast<double>();
-
-        // mean += pt.getVector3fMap().cast<double>();
-        // cov += (pt.getVector3fMap() * pt.getVector3fMap().transpose()).cast<double>();
+        data.col(j) = pt.getVector3fMap().template cast<double>();
       }
-
-      // mean /= k_indices.size();
-      // cov /= k_indices.size();
-      // cov -= mean * mean.transpose();
 
       data.colwise() -= data.rowwise().mean();
       cov = data * data.transpose();
-
-      /*
-      double lambda = 1e-6;
-      Eigen::Matrix3d inv_C = (cov + lambda * Eigen::Matrix3d::Identity()).inverse();
-      cov = (inv_C / inv_C.norm()).inverse();
-      */
 
       Eigen::JacobiSVD<Eigen::Matrix3d> svd(cov, Eigen::ComputeFullU | Eigen::ComputeFullV);
       // Eigen::Vector3d values = svd.singularValues();
@@ -185,25 +213,24 @@ private:
       // Eigen::Vector3d values = svd.singularValues().normalized().array().max(1e-2);
 
       cov = svd.matrixU() * values.asDiagonal() * svd.matrixV().transpose();
+
+      covariances[i].setZero();
+      covariances[i].template block<3, 3>(0, 0) = cov.template cast<float>();
     }
 
     return true;
   }
 
 private:
-  pcl::PointCloud<pcl::PointXYZI>::ConstPtr tgt_cloud;
-  pcl::PointCloud<pcl::PointXYZI>::ConstPtr src_cloud;
+  pcl::search::KdTree<PointSource> source_kdtree;
+  pcl::search::KdTree<PointTarget> target_kdtree;
 
-  pcl::search::KdTree<pcl::PointXYZI> tgt_kdtree;
-  pcl::search::KdTree<pcl::PointXYZI> src_kdtree;
-
-  std::vector<Eigen::Matrix3d, Eigen::aligned_allocator<Eigen::Matrix3d>> tgt_covs;
-  std::vector<Eigen::Matrix3d, Eigen::aligned_allocator<Eigen::Matrix3d>> src_covs;
+  std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>> source_covs;
+  std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>> target_covs;
 
   std::vector<int> correspondences;
   std::vector<float> sq_distances;
 };
-
-}  // namespace gicp
+}  // namespace fast_gicp
 
 #endif

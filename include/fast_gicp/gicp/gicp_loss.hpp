@@ -38,10 +38,29 @@ double gicp_loss(const Eigen::Vector4f& mean_A, const Eigen::Matrix4f& cov_A, co
   Eigen::Matrix<float, 4, 12> jRCRd = RCR_inv * jd;
 
   *J = RCRd.transpose() * jd + d.transpose() * jRCRd;
-
   return loss;
 }
 
+Eigen::Vector3f gicp_loss_ls(const Eigen::Vector4f& mean_A, const Eigen::Matrix4f& cov_A, const Eigen::Vector4f& mean_B, const Eigen::Matrix4f& cov_B, const Eigen::Matrix4f& Rt, Eigen::Matrix<float, 3, 12>* J = nullptr) {
+  Eigen::Vector4f d = mean_B - Rt * mean_A;
+
+  Eigen::Matrix4f RCR = cov_B + Rt * cov_A * Rt.transpose();
+  RCR(3, 3) = 1;
+  Eigen::Matrix4f RCR_inv = RCR.inverse();
+
+  Eigen::Vector4f RCRd = RCR_inv * d;
+
+  if(!J) {
+    return RCRd.head<3>();
+  }
+
+  Eigen::Matrix<float, 4, 12> jd = dtransform(mean_A, mean_B);
+  // Eigen::Matrix<float, 4, 12> jRCRd = RCR_inv * jd;
+
+  *J = RCR_inv.block<3, 3>(0, 0) * jd.block<3, 12>(0, 0);
+
+  return RCRd.head<3>();
+}
 }  // namespace fast_gicp
 
 #endif

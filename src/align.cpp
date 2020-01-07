@@ -1,3 +1,4 @@
+#include <chrono>
 #include <iostream>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
@@ -29,24 +30,36 @@ int main(int argc, char** argv) {
   voxelgrid.filter(*filtered);
   src_cloud = filtered;
 
+  auto t1 = std::chrono::high_resolution_clock::now();
   pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZI, pcl::PointXYZI> gicp2;
   gicp2.setInputSource(src_cloud);
   gicp2.setInputTarget(tgt_cloud);
 
   pcl::PointCloud<pcl::PointXYZI>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZI>());
   gicp2.align(*aligned);
+  auto t2 = std::chrono::high_resolution_clock::now();
 
   Eigen::Matrix4f model_matrix = gicp2.getFinalTransformation();
 
   auto viewer = guik::LightViewer::instance();
   viewer->update_drawable("pclgicp", std::make_shared<glk::PointCloudBuffer>(aligned), guik::ShaderSetting().add("color_mode", 1).add("material_color", Eigen::Vector4f(0.0f, 0.0f, 1.0f, 1.0f)));
 
+  auto t3 = std::chrono::high_resolution_clock::now();
   fast_gicp::FastGICP<pcl::PointXYZI, pcl::PointXYZI> gicp;
   gicp.setInputSource(src_cloud);
   gicp.setInputTarget(tgt_cloud);
 
   aligned.reset(new pcl::PointCloud<pcl::PointXYZI>());
   gicp.align(*aligned);
+  auto t4 = std::chrono::high_resolution_clock::now();
+
+  double elapsed1 = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
+  double elapsed2 = std::chrono::duration_cast<std::chrono::nanoseconds>(t4 - t3).count() / 1e6;
+
+  std::cout << elapsed1 << " " << elapsed2 << std::endl;
+
+  viewer->update_drawable("fast_gicp", std::make_shared<glk::PointCloudBuffer>(aligned), guik::ShaderSetting().add("color_mode", 1).add("material_color", Eigen::Vector4f(0.0f, 1.0f, 0.0f, 1.0f)));
+  viewer->spin();
 
   // Eigen::Matrix4d estimated = icp.align();
 

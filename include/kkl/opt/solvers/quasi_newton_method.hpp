@@ -54,17 +54,13 @@ public:
       RowVectorN j;
       double f0 = jacobian(x, &j);
 
-      std::cout << j << std::endl;
+      VectorN p = (-B_inv * j.transpose()).normalized();
 
-      VectorN p = -B_inv * j.transpose();
-
-      double jnorm = j.norm();
-      BackTrackingSearch line_search([&](double alpha) { return jacobian(x + p * alpha, nullptr); }, f0, jnorm);
-      // GoldenSectionSearch line_search([&](Scalar alpha) { return this->function(x + p.normalized() * alpha); });
+      // BackTrackingSearch line_search([&](double alpha) { return jacobian(x + p * alpha, nullptr); }, f0, jnorm);
+      // GoldenSectionSearch line_search([&](Scalar alpha) { return this->function(x + p * alpha); });
       // NelderMeadLineSearch<Scalar> line_search([&](Scalar alpha) { return this->function(x + p * alpha); });
-      double alpha = line_search.minimize(0.0, 1.0, TerminationCriteria(10, 1e-3));
-
-      std::cout << "alpha:" << alpha << std::endl;
+      // double alpha = line_search.minimize(0.0, 1.0, TerminationCriteria(10, 1e-4));
+      double alpha = backtracking(f0, x, p, j, 1e-3, 0.0, 0.1);
 
       VectorN s = alpha * p;
       x = x + s;
@@ -72,7 +68,6 @@ public:
       RowVectorN j2;
       jacobian(x, &j2);
       VectorN y = j2 - j;
-      j = j2;
 
       B_inv = update_B_inv(B_inv, s, y);
 
@@ -80,8 +75,7 @@ public:
         this->callback(x);
       }
 
-      if(s.array().abs().sum() < criteria.eps) {
-        std::cout << s.array().abs().sum() << ":" << s.transpose() << std::endl;
+      if(s.norm() < (x - s).norm() * criteria.eps) {
         result.converged = true;
         break;
       }
@@ -89,6 +83,18 @@ public:
 
     result.x = x;
     return result;
+  }
+
+  double backtracking(double f0, const VectorN& x, const VectorN& p, const RowVectorN& j, double c, double min_alpha, double max_alpha) const {
+    double alpha = max_alpha;
+    double rho = 0.5;
+    double pj = p.dot(j);
+
+    while(this->function(x + alpha * p) > f0 + c * alpha * pj && alpha > min_alpha) {
+      alpha *= rho;
+    }
+
+    return std::max(min_alpha, alpha);
   }
 
   virtual MatrixN update_B_inv(const MatrixN& B_inv, const VectorN& s, const VectorN& y) const = 0;

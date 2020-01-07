@@ -12,16 +12,16 @@ public:
   virtual ~BackTrackingSearch() override {}
 
   virtual double minimize(double a, double b, const TerminationCriteria& criteria = TerminationCriteria()) override {
-    double x = b;
+    double alpha = b;
     double rho = 0.5;
     double c = criteria.eps;
     double cgnorm = c * gnorm;
 
-    while(this->function(x) > f0 + x * c * gnorm) {
-      x *= rho;
+    while(this->function(alpha) > f0 + c * alpha * gnorm) {
+      alpha *= rho;
     }
 
-    return x;
+    return alpha;
   }
 
 private:

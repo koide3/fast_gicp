@@ -72,8 +72,6 @@ protected:
     x0.head<3>() = Sophus::SO3f(guess.template block<3, 3>(0, 0)).log();
     x0.tail<3>() = guess.template block<3, 1>(0, 3);
 
-    auto f = [this](const Eigen::Matrix<float, 6, 1>& x) { return loss(x); };
-    auto fj = [this](const Eigen::Matrix<float, 6, 1>& x, Eigen::Matrix<float, 1, 6>* J) { return loss(x, J); };
     auto callback = [this](const Eigen::Matrix<float, 6, 1>& x) { update_correspondences(x); };
 
     auto t1 = std::chrono::high_resolution_clock::now();
@@ -95,19 +93,11 @@ protected:
         break;
       }
       callback(x0);
-
     }
     std::cout << nr_iterations_ << std::endl;
     auto t2 = std::chrono::high_resolution_clock::now();
 
     std::cout << "optimization took " << std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6 << "[msec]" << std::endl;
-
-    // kkl::opt::BFGS<float, 6> optimizer(f);
-    // optimizer.set_callback(callback);
-    // auto result = optimizer.optimize(x0, kkl::opt::TerminationCriteria(32, 1e-6));
-
-    // converged_ = result.converged;
-    // nr_iterations_ = result.num_iterations;
 
     final_transformation_.setIdentity();
     final_transformation_.template block<3, 3>(0, 0) = Sophus::SO3f::exp(x0.head<3>()).matrix();
@@ -138,56 +128,10 @@ private:
     }
   }
 
-  double loss(const Eigen::Matrix<float, 6, 1>& x, Eigen::Matrix<float, 1, 6>* J = nullptr) const {
-    Eigen::Matrix4f trans = Eigen::Matrix4f::Identity();
-    trans.block<3, 3>(0, 0) = Sophus::SO3f::exp(x.head<3>()).matrix();
-    trans.block<3, 1>(0, 3) = x.tail<3>();
-
-    double loss = 0.0;
-    Eigen::Matrix<double, 1, 12> sum_jloss = Eigen::Matrix<double, 1, 12>::Zero();
-
-    for(int i = 0; i < input_->size(); i++) {
-      int target_index = correspondences[i];
-      float sq_dist = sq_distances[i];
-
-      if(sq_dist > corr_dist_threshold_ * corr_dist_threshold_) {
-        continue;
-      }
-
-      const auto& mean_A = input_->at(i).getVector4fMap();
-      const auto& cov_A = source_covs[i];
-
-      const auto& mean_B = target_->at(target_index).getVector4fMap();
-      const auto& cov_B = target_covs[target_index];
-
-      if(J) {
-        Eigen::Matrix<float, 1, 12> jloss = Eigen::Matrix<float, 1, 12>::Zero();
-        loss += fast_gicp::gicp_loss(mean_A, cov_A, mean_B, cov_B, trans, &jloss);
-        sum_jloss += jloss.cast<double>();
-      } else {
-        loss += fast_gicp::gicp_loss(mean_A, cov_A, mean_B, cov_B, trans);
-      }
-    }
-
-    if(J) {
-      Eigen::Matrix<float, 12, 6> jexp = Eigen::Matrix<float, 12, 6>::Zero();
-      jexp.block<9, 3>(0, 0) = fast_gicp::dso3_exp(x.head<3>());
-      jexp.block<3, 3>(9, 3) = Eigen::Matrix3f::Identity();
-
-      (*J) = sum_jloss.cast<float>() * jexp;
-    }
-
-    return loss;
-  }
-
   Eigen::VectorXf loss_ls(const Eigen::Matrix<float, 6, 1>& x, Eigen::MatrixXf* J) const {
     Eigen::Matrix4f trans = Eigen::Matrix4f::Identity();
     trans.block<3, 3>(0, 0) = Sophus::SO3f::exp(x.head<3>()).matrix();
     trans.block<3, 1>(0, 3) = x.tail<3>();
-
-    Eigen::Matrix<float, 12, 6> jexp = Eigen::Matrix<float, 12, 6>::Zero();
-    jexp.block<9, 3>(0, 0) = fast_gicp::dso3_exp(x.head<3>());
-    jexp.block<3, 3>(9, 3) = Eigen::Matrix3f::Identity();
 
     Eigen::VectorXf loss(input_->size() * 3);
     J->resize(input_->size() * 3, 6);
@@ -206,9 +150,21 @@ private:
       const auto& mean_B = target_->at(target_index).getVector4fMap();
       const auto& cov_B = target_covs[target_index];
 
-      Eigen::Matrix<float, 3, 12> jloss = Eigen::Matrix<float, 3, 12>::Zero();
-      loss.block<3, 1>(i * 3, 0) = fast_gicp::gicp_loss_ls(mean_A, cov_A, mean_B, cov_B, trans, &jloss);
-      J->block<3, 6>(3 * i, 0) = jloss * jexp;
+      Eigen::Vector4f d = mean_B - trans * mean_A;
+      Eigen::Matrix4f RCR = cov_B + trans * cov_A * trans.transpose();
+      RCR(3, 3) = 1;
+      Eigen::Matrix4f RCR_inv = RCR.inverse();
+      Eigen::Vector4f RCRd = RCR_inv * d;
+
+      Eigen::Vector4f transed = trans * mean_A;
+      Eigen::Matrix<float, 4, 6> dtdx0 = Eigen::Matrix<float, 4, 6>::Zero();
+      dtdx0.block<3, 3>(0, 0) = fast_gicp::skew(transed.head<3>());
+      dtdx0.block<3, 3>(0, 3) = -Eigen::Matrix3f::Identity();
+
+      Eigen::Matrix<float, 4, 6> jlossexp = RCR_inv * dtdx0;
+
+      loss.block<3, 1>(i * 3, 0) = RCRd.head<3>();
+      J->block<3, 6>(3 * i, 0) = jlossexp.block<3, 6>(0, 0);
     }
 
     return loss;

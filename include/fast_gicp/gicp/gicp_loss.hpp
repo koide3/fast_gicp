@@ -10,7 +10,7 @@ namespace fast_gicp {
  * f(x) = mean_B - (R * mean_A + t)
  * x = [r00, r10, ..., r22, t0, t1, t2]
  */
-Eigen::Matrix<float, 4, 12> dtransform(const Eigen::Vector4f& mean_A, const Eigen::Vector4f& mean_B) {
+Eigen::Matrix<float, 4, 12> dtransform(const Eigen::Vector4f& mean_A) {
   Eigen::Matrix<float, 4, 12> J = Eigen::Matrix<float, 4, 12>::Zero();
   J.block<4, 4>(0, 0).diagonal().array() = -mean_A[0];
   J.block<4, 4>(0, 3).diagonal().array() = -mean_A[1];
@@ -34,7 +34,7 @@ double gicp_loss(const Eigen::Vector4f& mean_A, const Eigen::Matrix4f& cov_A, co
     return loss;
   }
 
-  Eigen::Matrix<float, 4, 12> jd = dtransform(mean_A, mean_B);
+  Eigen::Matrix<float, 4, 12> jd = dtransform(mean_A);
   Eigen::Matrix<float, 4, 12> jRCRd = RCR_inv * jd;
 
   *J = RCRd.transpose() * jd + d.transpose() * jRCRd;
@@ -54,7 +54,7 @@ Eigen::Vector3f gicp_loss_ls(const Eigen::Vector4f& mean_A, const Eigen::Matrix4
     return RCRd.head<3>();
   }
 
-  Eigen::Matrix<float, 4, 12> jd = dtransform(mean_A, mean_B);
+  Eigen::Matrix<float, 4, 12> jd = dtransform(mean_A);
   // Eigen::Matrix<float, 4, 12> jRCRd = RCR_inv * jd;
 
   *J = RCR_inv.block<3, 3>(0, 0) * jd.block<3, 12>(0, 0);

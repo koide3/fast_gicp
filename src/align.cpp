@@ -10,6 +10,9 @@
 
 #include <fast_gicp/gicp/fast_gicp.hpp>
 
+#include <glk/pointcloud_buffer.hpp>
+#include <guik/viewer/light_viewer.hpp>
+
 int main(int argc, char** argv) {
   pcl::PointCloud<pcl::PointXYZI>::Ptr tgt_cloud(new pcl::PointCloud<pcl::PointXYZI>());
   pcl::PointCloud<pcl::PointXYZI>::Ptr src_cloud(new pcl::PointCloud<pcl::PointXYZI>());

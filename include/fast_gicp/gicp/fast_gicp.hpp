@@ -16,9 +16,6 @@
 #include <fast_gicp/gicp/gicp_loss.hpp>
 #include <fast_gicp/so3/so3_derivatives.hpp>
 
-#include <glk/pointcloud_buffer.hpp>
-#include <guik/viewer/light_viewer.hpp>
-
 namespace fast_gicp {
 
 template<typename PointSource, typename PointTarget>
@@ -47,13 +44,19 @@ public:
   using pcl::Registration<PointSource, PointTarget, Scalar>::corr_dist_threshold_;
 
   FastGICP() {
+    num_threads_ = omp_get_max_threads();
+
     reg_name_ = "FastGICP";
-  }
-  virtual ~FastGICP() override {
     max_iterations_ = 64;
+    rotation_epsilon_ = 2e-3;
     transformation_epsilon_ = 5e-4;
     // corr_dist_threshold_ = 1.0;
     corr_dist_threshold_ = std::numeric_limits<float>::max();
+  }
+  virtual ~FastGICP() override {}
+
+  void setNumThreads(int n) {
+    num_threads_ = n;
   }
 
   virtual void setInputSource(const PointCloudSourceConstPtr& cloud) override {
@@ -74,7 +77,6 @@ protected:
 
     auto callback = [this](const Eigen::Matrix<float, 6, 1>& x) { update_correspondences(x); };
 
-    auto t1 = std::chrono::high_resolution_clock::now();
     converged_ = false;
     update_correspondences(x0);
     for(int i = 0; i < max_iterations_; i++) {
@@ -88,16 +90,12 @@ protected:
 
       x0 -= delta;
 
-      if(delta.array().abs().sum() < transformation_epsilon_) {
+      if(is_converged(delta)) {
         converged_ = true;
         break;
       }
       callback(x0);
     }
-    std::cout << nr_iterations_ << std::endl;
-    auto t2 = std::chrono::high_resolution_clock::now();
-
-    std::cout << "optimization took " << std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6 << "[msec]" << std::endl;
 
     final_transformation_.setIdentity();
     final_transformation_.template block<3, 3>(0, 0) = Sophus::SO3f::exp(x0.head<3>()).matrix();
@@ -107,6 +105,17 @@ protected:
   }
 
 private:
+  bool is_converged(const Eigen::Matrix<float, 6, 1>& delta) const {
+    double accum = 0.0;
+    Eigen::Matrix3f R = Sophus::SO3f::exp(delta.head<3>()).matrix() - Eigen::Matrix3f::Identity();
+    Eigen::Vector3f t = delta.tail<3>();
+
+    Eigen::Matrix3f r_delta = 1.0 / rotation_epsilon_ * R.array().abs();
+    Eigen::Vector3f t_delta = 1.0 / transformation_epsilon_ * t.array().abs();
+
+    return std::max(r_delta.maxCoeff(), t_delta.maxCoeff()) < 1;
+  }
+
   void update_correspondences(const Eigen::Matrix<float, 6, 1>& x) {
     Eigen::Matrix4f trans = Eigen::Matrix4f::Identity();
     trans.block<3, 3>(0, 0) = Sophus::SO3f::exp(x.head<3>()).matrix();
@@ -115,6 +124,7 @@ private:
     correspondences.resize(input_->size());
     sq_distances.resize(input_->size());
 
+#pragma omp parallel for num_threads(num_threads_)
     for(int i = 0; i < input_->size(); i++) {
       PointTarget pt;
       pt.getVector4fMap() = trans * input_->at(i).getVector4fMap();
@@ -136,6 +146,7 @@ private:
     Eigen::VectorXf loss(input_->size() * 3);
     J->resize(input_->size() * 3, 6);
 
+#pragma omp parallel for num_threads(num_threads_)
     for(int i = 0; i < input_->size(); i++) {
       int target_index = correspondences[i];
       float sq_dist = sq_distances[i];
@@ -150,15 +161,16 @@ private:
       const auto& mean_B = target_->at(target_index).getVector4fMap();
       const auto& cov_B = target_covs[target_index];
 
-      Eigen::Vector4f d = mean_B - trans * mean_A;
+      Eigen::Vector4f transed_mean_A = trans * mean_A;
+      Eigen::Vector4f d = mean_B - transed_mean_A;
       Eigen::Matrix4f RCR = cov_B + trans * cov_A * trans.transpose();
       RCR(3, 3) = 1;
+
       Eigen::Matrix4f RCR_inv = RCR.inverse();
       Eigen::Vector4f RCRd = RCR_inv * d;
 
-      Eigen::Vector4f transed = trans * mean_A;
       Eigen::Matrix<float, 4, 6> dtdx0 = Eigen::Matrix<float, 4, 6>::Zero();
-      dtdx0.block<3, 3>(0, 0) = fast_gicp::skew(transed.head<3>());
+      dtdx0.block<3, 3>(0, 0) = fast_gicp::skew(transed_mean_A.head<3>());
       dtdx0.block<3, 3>(0, 3) = -Eigen::Matrix3f::Identity();
 
       Eigen::Matrix<float, 4, 6> jlossexp = RCR_inv * dtdx0;
@@ -175,40 +187,38 @@ private:
     kdtree.setInputCloud(cloud);
     covariances.resize(cloud->size());
 
+#pragma omp parallel for num_threads(num_threads_)
     for(int i = 0; i < cloud->size(); i++) {
       std::vector<int> k_indices;
       std::vector<float> k_sq_distances;
       kdtree.nearestKSearch(cloud->at(i), 20, k_indices, k_sq_distances);
 
-      Eigen::Vector3d mean = Eigen::Vector3d::Zero();
-      Eigen::Matrix3d cov = Eigen::Matrix3d::Zero();
-
-      Eigen::Matrix<double, 3, 20> data;
+      Eigen::Matrix<float, 4, 20> data;
 
       for(int j = 0; j < k_indices.size(); j++) {
-        const auto& pt = cloud->at(k_indices[j]);
-        data.col(j) = pt.getVector3fMap().template cast<double>();
+        data.col(j) = cloud->at(k_indices[j]).getVector4fMap();
       }
 
-      data.colwise() -= data.rowwise().mean();
-      cov = data * data.transpose();
+      data.colwise() -= data.rowwise().mean().eval();
+      Eigen::Matrix4f cov = data * data.transpose();
 
-      Eigen::JacobiSVD<Eigen::Matrix3d> svd(cov, Eigen::ComputeFullU | Eigen::ComputeFullV);
+      Eigen::JacobiSVD<Eigen::Matrix3f> svd(cov.block<3, 3>(0, 0), Eigen::ComputeFullU | Eigen::ComputeFullV);
       // Eigen::Vector3d values = svd.singularValues();
-      Eigen::Vector3d values(1, 1, 1e-2);
+      Eigen::Vector3f values(1, 1, 1e-2);
       // Eigen::Vector3d values = svd.singularValues().array().max(1e-2);
       // Eigen::Vector3d values = svd.singularValues().normalized().array().max(1e-2);
 
-      cov = svd.matrixU() * values.asDiagonal() * svd.matrixV().transpose();
-
       covariances[i].setZero();
-      covariances[i].template block<3, 3>(0, 0) = cov.template cast<float>();
+      covariances[i].template block<3, 3>(0, 0) = svd.matrixU() * values.asDiagonal() * svd.matrixV().transpose();
     }
 
     return true;
   }
 
 private:
+  int num_threads_;
+  double rotation_epsilon_;
+
   pcl::search::KdTree<PointSource> source_kdtree;
   pcl::search::KdTree<PointTarget> target_kdtree;
 

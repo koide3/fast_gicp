@@ -4,10 +4,6 @@
 #include <Eigen/Geometry>
 
 #include <sophus/so3.hpp>
-#include <kkl/opt/numerical.hpp>
-
-#include <fast_gicp/gicp/gicp_loss.hpp>
-#include <fast_gicp/so3/so3_derivatives.hpp>
 
 bool test() {
   return false;

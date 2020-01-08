@@ -1,5 +1,7 @@
-#ifndef FAST_GICP_FAST_GICP_HPP
-#define FAST_GICP_FAST_GICP_HPP
+#ifndef FAST_GICP_FAST_VGICP_HPP
+#define FAST_GICP_FAST_VGICP_HPP
+
+#include <unordered_map>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -10,11 +12,18 @@
 #include <pcl/registration/registration.h>
 
 #include <sophus/so3.hpp>
+#include <fast_gicp/gicp/fast_vgicp_voxel.hpp>
 
 namespace fast_gicp {
 
+enum NeighborSearchMethod {
+  DIRECT27,
+  DIRECT7,
+  DIRECT1
+};
+
 template<typename PointSource, typename PointTarget>
-class FastGICP : public pcl::Registration<PointSource, PointTarget, float> {
+class FastVGICP : public pcl::Registration<PointSource, PointTarget, float> {
 public:
   using Scalar = float;
   using Matrix4 = typename pcl::Registration<PointSource, PointTarget, Scalar>::Matrix4;
@@ -38,10 +47,12 @@ public:
   using pcl::Registration<PointSource, PointTarget, Scalar>::converged_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::corr_dist_threshold_;
 
-  FastGICP();
-  virtual ~FastGICP() override;
+  FastVGICP();
+  virtual ~FastVGICP() override;
 
   void setNumThreads(int n);
+
+  void setNeighborSearchMethod(NeighborSearchMethod method);
 
   virtual void setInputSource(const PointCloudSourceConstPtr& cloud) override;
 
@@ -51,9 +62,13 @@ protected:
   virtual void computeTransformation(PointCloudSource& output, const Matrix4& guess) override;
 
 private:
-  bool is_converged(const Eigen::Matrix<float, 6, 1>& delta) const;
+  std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> neighbor_offsets() const;
 
-  void update_correspondences(const Eigen::Matrix<float, 6, 1>& x);
+  Eigen::Vector3i voxel_coord(const Eigen::Vector4f& x) const;
+  Eigen::Vector4f voxel_origin(const Eigen::Vector3i& coord) const;
+  GaussianVoxel::Ptr lookup_voxel(const Eigen::Vector3i& x) const;
+
+  bool is_converged(const Eigen::Matrix<float, 6, 1>& delta) const;
 
   Eigen::VectorXf loss_ls(const Eigen::Matrix<float, 6, 1>& x, Eigen::MatrixXf* J) const;
 
@@ -70,8 +85,11 @@ private:
   std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>> source_covs;
   std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>> target_covs;
 
-  std::vector<int> correspondences;
-  std::vector<float> sq_distances;
+  double voxel_resolution_;
+  NeighborSearchMethod search_method_;
+
+  using VoxelMap = std::unordered_map<Eigen::Vector3i, GaussianVoxel::Ptr, Vector3iHash, std::equal_to<Eigen::Vector3i>, Eigen::aligned_allocator<std::pair<Eigen::Vector3i, GaussianVoxel::Ptr>>>;
+  VoxelMap voxels;
 };
 }  // namespace fast_gicp
 

@@ -12,10 +12,8 @@
 
 #include <sophus/so3.hpp>
 #include <fast_gicp/so3/so3.hpp>
+#include <fast_gicp/opt/gauss_newton.hpp>
 #include <fast_gicp/gicp/fast_vgicp.hpp>
-
-#include <glk/pointcloud_buffer.hpp>
-#include <guik/viewer/light_viewer.hpp>
 
 namespace fast_gicp {
 
@@ -32,14 +30,20 @@ FastVGICP<PointSource, PointTarget>::FastVGICP() {
   rotation_epsilon_ = 2e-3;
   transformation_epsilon_ = 5e-4;
   // corr_dist_threshold_ = 1.0;
+  regularization_method_ = PLANE;
   corr_dist_threshold_ = std::numeric_limits<float>::max();
 
   voxel_resolution_ = 0.5;
-  search_method_ = DIRECT7;
+  search_method_ = DIRECT1;
 }
 
 template<typename PointSource, typename PointTarget>
 FastVGICP<PointSource, PointTarget>::~FastVGICP() {}
+
+template<typename PointSource, typename PointTarget>
+void FastVGICP<PointSource, PointTarget>::setResolution(double res) {
+  voxel_resolution_ = res;
+}
 
 template<typename PointSource, typename PointTarget>
 void FastVGICP<PointSource, PointTarget>::setNumThreads(int n) {
@@ -50,6 +54,11 @@ void FastVGICP<PointSource, PointTarget>::setNumThreads(int n) {
     num_threads_ = omp_get_max_threads();
   }
 #endif
+}
+
+template<typename PointSource, typename PointTarget>
+void FastVGICP<PointSource, PointTarget>::setRegularizationMethod(RegularizationMethod method) {
+  regularization_method_ = method;
 }
 
 template<typename PointSource, typename PointTarget>
@@ -74,14 +83,14 @@ void FastVGICP<PointSource, PointTarget>::setInputTarget(const PointCloudTargetC
 
     auto found = voxels.find(coord);
     if(found == voxels.end()) {
-      found = voxels.insert(found, std::make_pair(coord, std::make_shared<GaussianVoxel>()));
+      found = voxels.insert(found, std::make_pair(coord, std::shared_ptr<GaussianVoxel>(new GaussianVoxel)));
     }
 
     auto& voxel = found->second;
     voxel->append(cloud->at(i).getVector4fMap(), target_covs[i]);
   }
 
-  for(auto& voxel: voxels) {
+  for(auto& voxel : voxels) {
     voxel.second->finalize();
   }
 }
@@ -92,16 +101,23 @@ void FastVGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource
   x0.head<3>() = Sophus::SO3f(guess.template block<3, 3>(0, 0)).log();
   x0.tail<3>() = guess.template block<3, 1>(0, 3);
 
+  if(x0.head<3>().norm() < 1e-1) {
+    x0.head<3>() = (Eigen::Vector3f::Random()).normalized() * 1e-1;
+  }
+
   converged_ = false;
+  GaussNewton<double, 6> solver;
+
   for(int i = 0; i < max_iterations_; i++) {
     nr_iterations_ = i;
 
     Eigen::MatrixXf J;
     Eigen::VectorXf loss = loss_ls(x0, &J);
 
-    Eigen::Matrix<float, 6, 6> JJ = J.transpose() * J;
-    Eigen::VectorXf delta = JJ.llt().solve(J.transpose() * loss);
-    x0 -= delta;
+    Eigen::Matrix<float, 6, 1> delta = solver.delta(loss.cast<double>(), J.cast<double>()).cast<float>();
+
+    x0.head<3>() = (Sophus::SO3f::exp(-delta.head<3>()) * Sophus::SO3f::exp(x0.head<3>())).log();
+    x0.tail<3>() -= delta.tail<3>();
 
     if(is_converged(delta)) {
       converged_ = true;
@@ -205,7 +221,7 @@ Eigen::VectorXf FastVGICP<PointSource, PointTarget>::loss_ls(const Eigen::Matrix
 
     bool is_RCR_computed = false;
     Eigen::Matrix4f RCR;
-    Eigen::Matrix3f skew_mean_A;
+    Eigen::Matrix4f skew_mean_A;
 
     for(const auto& offset : offsets) {
       auto voxel = lookup_voxel(coord + offset);
@@ -217,7 +233,8 @@ Eigen::VectorXf FastVGICP<PointSource, PointTarget>::loss_ls(const Eigen::Matrix
       if(!is_RCR_computed) {
         RCR = trans * cov_A * trans.transpose();
         RCR(3, 3) = 1;
-        skew_mean_A = skew(transed_mean_A.head<3>());
+        skew_mean_A.setZero();
+        skew_mean_A.block<3, 3>(0, 0) = skew(transed_mean_A.head<3>());
         is_RCR_computed = true;
       }
 
@@ -228,8 +245,8 @@ Eigen::VectorXf FastVGICP<PointSource, PointTarget>::loss_ls(const Eigen::Matrix
       Eigen::Matrix4f RCR_inv = (cov_B + RCR).inverse();
 
       int n = count++;
-      losses[n] = (RCR_inv * d).eval().head<3>();
-      Js[n].block<3, 3>(0, 0) = RCR_inv.block<3, 3>(0, 0) * skew_mean_A;
+      losses[n] = (RCR_inv * d).head<3>();
+      Js[n].block<3, 3>(0, 0) = (RCR_inv * skew_mean_A).block<3, 3>(0, 0);
       Js[n].block<3, 3>(0, 3) = -RCR_inv.block<3, 3>(0, 0);
     }
   }
@@ -261,14 +278,31 @@ bool FastVGICP<PointSource, PointTarget>::calculate_covariances(const boost::sha
     data.colwise() -= data.rowwise().mean().eval();
     Eigen::Matrix4f cov = data * data.transpose();
 
-    Eigen::JacobiSVD<Eigen::Matrix3f> svd(cov.block<3, 3>(0, 0), Eigen::ComputeFullU | Eigen::ComputeFullV);
-    // Eigen::Vector3d values = svd.singularValues();
-    Eigen::Vector3f values(1, 1, 1e-2);
-    // Eigen::Vector3d values = svd.singularValues().array().max(1e-2);
-    // Eigen::Vector3d values = svd.singularValues().normalized().array().max(1e-2);
+    if(regularization_method_ == FROBENIUS) {
+      double lambda = 1e-6;
+      Eigen::Matrix3f C = cov.block<3, 3>(0, 0) + lambda * Eigen::Matrix3f::Identity();
+      Eigen::Matrix3f C_inv = C.inverse();
+      covariances[i].setZero();
+      covariances[i].template block<3, 3>(0, 0) = (C_inv / C_inv.norm()).inverse();
+    } else {
+      Eigen::JacobiSVD<Eigen::Matrix3f> svd(cov.block<3, 3>(0, 0), Eigen::ComputeFullU | Eigen::ComputeFullV);
+      Eigen::Vector3f values;
 
-    covariances[i].setZero();
-    covariances[i].template block<3, 3>(0, 0) = svd.matrixU() * values.asDiagonal() * svd.matrixV().transpose();
+      switch(regularization_method_) {
+        case PLANE:
+          values = Eigen::Vector3f(1, 1, 1e-2);
+          break;
+        case MIN_EIG:
+          values = svd.singularValues().array().max(1e-2);
+          break;
+        case NORMALIZED_MIN_EIG:
+          values = svd.singularValues().normalized().array().max(1e-2);
+          break;
+      }
+
+      covariances[i].setZero();
+      covariances[i].template block<3, 3>(0, 0) = svd.matrixU() * values.asDiagonal() * svd.matrixV().transpose();
+    }
   }
 
   return true;

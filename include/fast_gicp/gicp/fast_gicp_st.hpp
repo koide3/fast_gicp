@@ -7,6 +7,7 @@
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <pcl/registration/registration.h>
+#include <fast_gicp/gicp/gicp_settings.hpp>
 
 namespace fast_gicp {
 
@@ -41,6 +42,8 @@ public:
   FastGICPSingleThread();
   virtual ~FastGICPSingleThread() override;
 
+  void setRegularizationMethod(RegularizationMethod method);
+
   virtual void setInputSource(const PointCloudSourceConstPtr& cloud) override;
 
   virtual void setInputTarget(const PointCloudTargetConstPtr& cloud) override;
@@ -60,6 +63,7 @@ private:
 
 private:
   double rotation_epsilon_;
+  RegularizationMethod regularization_method_;
 
   pcl::search::KdTree<PointSource> source_kdtree;
   pcl::search::KdTree<PointTarget> target_kdtree;

@@ -4,6 +4,7 @@
 #include <sophus/so3.hpp>
 
 #include <fast_gicp/so3/so3.hpp>
+#include <fast_gicp/opt/gauss_newton.hpp>
 #include <fast_gicp/gicp/fast_gicp_st.hpp>
 
 namespace fast_gicp {
@@ -15,11 +16,17 @@ FastGICPSingleThread<PointSource, PointTarget>::FastGICPSingleThread() {
   rotation_epsilon_ = 2e-3;
   transformation_epsilon_ = 5e-4;
   // corr_dist_threshold_ = 1.0;
+  regularization_method_ = PLANE;
   corr_dist_threshold_ = std::numeric_limits<float>::max();
 }
 
 template<typename PointSource, typename PointTarget>
 FastGICPSingleThread<PointSource, PointTarget>::~FastGICPSingleThread() {}
+
+template<typename PointSource, typename PointTarget>
+void FastGICPSingleThread<PointSource, PointTarget>::setRegularizationMethod(RegularizationMethod method) {
+  regularization_method_ = method;
+}
 
 template<typename PointSource, typename PointTarget>
 void FastGICPSingleThread<PointSource, PointTarget>::setInputSource(const PointCloudSourceConstPtr& cloud) {
@@ -41,25 +48,29 @@ void FastGICPSingleThread<PointSource, PointTarget>::computeTransformation(Point
   x0.head<3>() = Sophus::SO3f(guess.template block<3, 3>(0, 0)).log();
   x0.tail<3>() = guess.template block<3, 1>(0, 3);
 
+  if(x0.head<3>().norm() < 1e-1) {
+    x0.head<3>() = (Eigen::Vector3f::Random()).normalized() * 1e-1;
+  }
+
   converged_ = false;
-  update_correspondences(x0);
+  GaussNewton<double, 6> solver;
 
   for(int i = 0; i < max_iterations_; i++) {
     nr_iterations_ = i;
 
+    update_correspondences(x0);
     Eigen::MatrixXf J;
     Eigen::VectorXf loss = loss_ls(x0, &J);
 
-    Eigen::Matrix<float, 6, 6> JJ = J.transpose() * J;
-    Eigen::VectorXf delta = JJ.llt().solve(J.transpose() * loss);
-    x0 -= delta;
+    Eigen::Matrix<float, 6, 1> delta = solver.delta(loss.cast<double>(), J.cast<double>()).cast<float>();
+
+    x0.head<3>() = (Sophus::SO3f::exp(-delta.head<3>()) * Sophus::SO3f::exp(x0.head<3>())).log();
+    x0.tail<3>() -= delta.tail<3>();
 
     if(is_converged(delta)) {
       converged_ = true;
       break;
     }
-
-    update_correspondences(x0);
   }
 
   final_transformation_.setIdentity();
@@ -179,15 +190,31 @@ bool FastGICPSingleThread<PointSource, PointTarget>::calculate_covariances(const
     data.colwise() -= data.rowwise().mean().eval();
     Eigen::Matrix4f cov = data * data.transpose();
 
-    svd.compute(cov.block<3, 3>(0, 0), Eigen::ComputeFullU | Eigen::ComputeFullV);
+    if(regularization_method_ == FROBENIUS) {
+      double lambda = 1e-6;
+      Eigen::Matrix3f C = cov.block<3, 3>(0, 0) + lambda * Eigen::Matrix3f::Identity();
+      Eigen::Matrix3f C_inv = C.inverse();
+      covariances[i].setZero();
+      covariances[i].template block<3, 3>(0, 0) = (C_inv / C_inv.norm()).inverse();
+    } else {
+      Eigen::JacobiSVD<Eigen::Matrix3f> svd(cov.block<3, 3>(0, 0), Eigen::ComputeFullU | Eigen::ComputeFullV);
+      Eigen::Vector3f values;
 
-    // Eigen::Vector3d values = svd.singularValues();
-    Eigen::Vector3f values(1, 1, 1e-2);
-    // Eigen::Vector3d values = svd.singularValues().array().max(1e-2);
-    // Eigen::Vector3d values = svd.singularValues().normalized().array().max(1e-2);
+      switch(regularization_method_) {
+        case PLANE:
+          values = Eigen::Vector3f(1, 1, 1e-2);
+          break;
+        case MIN_EIG:
+          values = svd.singularValues().array().max(1e-2);
+          break;
+        case NORMALIZED_MIN_EIG:
+          values = svd.singularValues().normalized().array().max(1e-2);
+          break;
+      }
 
-    covariances[i].setZero();
-    covariances[i].template block<3, 3>(0, 0) = svd.matrixU() * values.asDiagonal() * svd.matrixV().transpose();
+      covariances[i].setZero();
+      covariances[i].template block<3, 3>(0, 0) = svd.matrixU() * values.asDiagonal() * svd.matrixV().transpose();
+    }
   }
 
   return true;

@@ -12,15 +12,10 @@
 #include <pcl/registration/registration.h>
 
 #include <sophus/so3.hpp>
+#include <fast_gicp/gicp/gicp_settings.hpp>
 #include <fast_gicp/gicp/fast_vgicp_voxel.hpp>
 
 namespace fast_gicp {
-
-enum NeighborSearchMethod {
-  DIRECT27,
-  DIRECT7,
-  DIRECT1
-};
 
 template<typename PointSource, typename PointTarget>
 class FastVGICP : public pcl::Registration<PointSource, PointTarget, float> {
@@ -51,6 +46,10 @@ public:
   virtual ~FastVGICP() override;
 
   void setNumThreads(int n);
+
+  void setResolution(double res);
+
+  void setRegularizationMethod(RegularizationMethod method);
 
   void setNeighborSearchMethod(NeighborSearchMethod method);
 
@@ -87,6 +86,7 @@ private:
 
   double voxel_resolution_;
   NeighborSearchMethod search_method_;
+  RegularizationMethod regularization_method_;
 
   using VoxelMap = std::unordered_map<Eigen::Vector3i, GaussianVoxel::Ptr, Vector3iHash, std::equal_to<Eigen::Vector3i>, Eigen::aligned_allocator<std::pair<Eigen::Vector3i, GaussianVoxel::Ptr>>>;
   VoxelMap voxels;

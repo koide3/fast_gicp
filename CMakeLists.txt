@@ -12,11 +12,11 @@ find_package(catkin REQUIRED COMPONENTS gl_test_field)
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
 
-# find_package(OpenMP)
-# if (OPENMP_FOUND)
-#     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-#     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-# endif()
+find_package(OpenMP)
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
 
 ###################################
 ## catkin specific configuration ##
@@ -60,5 +60,6 @@ target_link_libraries(gicp_align
 add_executable(fast_test src/fast_test.cpp)
 target_link_libraries(fast_test
   ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
   fast_gicp
 )

@@ -1,14 +1,14 @@
 #include <chrono>
 #include <iostream>
+
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <pcl/common/transforms.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/registration/gicp.h>
-#include <pcl/visualization/pcl_visualizer.h>
 
-#include <fast_gicp/gicp/fast_gicp.hpp>
+#include <fast_gicp/gicp/fast_vgicp.hpp>
 
 #include <glk/pointcloud_buffer.hpp>
 #include <guik/viewer/light_viewer.hpp>
@@ -33,39 +33,41 @@ int main(int argc, char** argv) {
   voxelgrid.filter(*filtered);
   src_cloud = filtered;
 
-  auto t1 = std::chrono::high_resolution_clock::now();
-  pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZI, pcl::PointXYZI> gicp2;
-  gicp2.setInputSource(src_cloud);
-  gicp2.setInputTarget(tgt_cloud);
-
-  pcl::PointCloud<pcl::PointXYZI>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZI>());
-  gicp2.align(*aligned);
-  auto t2 = std::chrono::high_resolution_clock::now();
-
-  Eigen::Matrix4f model_matrix = gicp2.getFinalTransformation();
-
   auto viewer = guik::LightViewer::instance();
-  viewer->update_drawable("pclgicp", std::make_shared<glk::PointCloudBuffer>(aligned), guik::ShaderSetting().add("color_mode", 1).add("material_color", Eigen::Vector4f(0.0f, 0.0f, 1.0f, 1.0f)));
+  viewer->update_drawable("source", std::make_shared<glk::PointCloudBuffer>(src_cloud), guik::ShaderSetting().add("color_mode", 1).add("material_color", Eigen::Vector4f(1.0f, 0.0f, 0.0f, 1.0f)));
+  viewer->update_drawable("target", std::make_shared<glk::PointCloudBuffer>(tgt_cloud), guik::ShaderSetting().add("color_mode", 1).add("material_color", Eigen::Vector4f(0.0f, 0.0f, 1.0f, 1.0f)));
 
-  auto t3 = std::chrono::high_resolution_clock::now();
-  fast_gicp::FastGICP<pcl::PointXYZI, pcl::PointXYZI> gicp;
-  gicp.setInputSource(src_cloud);
-  gicp.setInputTarget(tgt_cloud);
+  pcl::PointCloud<pcl::PointXYZI>::Ptr aligned;
 
+  fast_gicp::FastVGICP<pcl::PointXYZI, pcl::PointXYZI> vgicp;
   aligned.reset(new pcl::PointCloud<pcl::PointXYZI>());
-  gicp.align(*aligned);
-  auto t4 = std::chrono::high_resolution_clock::now();
+  auto t1 = std::chrono::high_resolution_clock::now();
+    vgicp.setInputSource(src_cloud);
+    vgicp.setInputTarget(tgt_cloud);
+  for(int i = 0; i < 32; i++) {
+    vgicp.align(*aligned);
+  }
+  auto t2 = std::chrono::high_resolution_clock::now();
+  double elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
+  std::cout << "vgicp:" << elapsed << "[msec]" << std::endl;
+  viewer->update_drawable("vgicp", std::make_shared<glk::PointCloudBuffer>(aligned), guik::ShaderSetting().add("color_mode", 1).add("material_color", Eigen::Vector4f(0.0f, 1.0f, 0.0f, 1.0f)));
 
-  double elapsed1 = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
-  double elapsed2 = std::chrono::duration_cast<std::chrono::nanoseconds>(t4 - t3).count() / 1e6;
+  pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZI, pcl::PointXYZI> pcl_gicp;
+  aligned.reset(new pcl::PointCloud<pcl::PointXYZI>());
+  t1 = std::chrono::high_resolution_clock::now();
+  pcl_gicp.setInputSource(src_cloud);
+  pcl_gicp.setInputTarget(tgt_cloud);
+  for(int i = 0; i < 32; i++) {
+    pcl_gicp.align(*aligned);
+  }
+  t2 = std::chrono::high_resolution_clock::now();
+  elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
+  std::cout << "pcl_gicp:" << elapsed << "[msec]" << std::endl;
+  viewer->update_drawable("gicp_pcl", std::make_shared<glk::PointCloudBuffer>(aligned), guik::ShaderSetting().add("color_mode", 1).add("material_color", Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f)));
 
-  std::cout << elapsed1 << " " << elapsed2 << std::endl;
-
-  viewer->update_drawable("fast_gicp", std::make_shared<glk::PointCloudBuffer>(aligned), guik::ShaderSetting().add("color_mode", 1).add("material_color", Eigen::Vector4f(0.0f, 1.0f, 0.0f, 1.0f)));
   viewer->spin();
 
   // Eigen::Matrix4d estimated = icp.align();
-
 
   return 0;
 }

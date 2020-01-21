@@ -1,20 +1,17 @@
-#ifndef FAST_GICP_FAST_GICP_HPP
-#define FAST_GICP_FAST_GICP_HPP
+#ifndef FAST_GICP_FAST_GICP_ST_HPP
+#define FAST_GICP_FAST_GICP_ST_HPP
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
-#include <pcl/search/kdtree.h>
 #include <pcl/registration/registration.h>
-
-#include <sophus/so3.hpp>
 
 namespace fast_gicp {
 
 template<typename PointSource, typename PointTarget>
-class FastGICP : public pcl::Registration<PointSource, PointTarget, float> {
+class FastGICPSingleThread : public pcl::Registration<PointSource, PointTarget, float> {
 public:
   using Scalar = float;
   using Matrix4 = typename pcl::Registration<PointSource, PointTarget, Scalar>::Matrix4;
@@ -31,6 +28,9 @@ public:
   using pcl::Registration<PointSource, PointTarget, Scalar>::input_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::target_;
 
+  using pcl::Registration<PointSource, PointTarget, Scalar>::tree_;
+  using pcl::Registration<PointSource, PointTarget, Scalar>::tree_reciprocal_;
+
   using pcl::Registration<PointSource, PointTarget, Scalar>::nr_iterations_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::max_iterations_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::final_transformation_;
@@ -38,10 +38,8 @@ public:
   using pcl::Registration<PointSource, PointTarget, Scalar>::converged_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::corr_dist_threshold_;
 
-  FastGICP();
-  virtual ~FastGICP() override;
-
-  void setNumThreads(int n);
+  FastGICPSingleThread();
+  virtual ~FastGICPSingleThread() override;
 
   void setCorrespondenceRandomness(int k);
 
@@ -63,9 +61,8 @@ private:
   bool calculate_covariances(const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>>& covariances);
 
 private:
-  int num_threads_;
-  int k_correspondences_;
   double rotation_epsilon_;
+  int k_correspondences_;
 
   pcl::search::KdTree<PointSource> source_kdtree;
   pcl::search::KdTree<PointTarget> target_kdtree;
@@ -75,6 +72,9 @@ private:
 
   std::vector<int> correspondences;
   std::vector<float> sq_distances;
+
+  std::vector<float> second_sq_distances;
+  std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f>> anchors;
 };
 }  // namespace fast_gicp
 

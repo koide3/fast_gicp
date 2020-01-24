@@ -18,6 +18,13 @@ if (OPENMP_FOUND)
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
+
+find_package(CUDA REQUIRED)
+if(CUDA_FOUND)
+  include_directories(${CUDA_INCLUDE_DIRS})
+  link_directories(${CUDA_LIBRARY_DIRS})
+endif()
+
 ###################################
 ## catkin specific configuration ##
 ###################################
@@ -64,3 +71,13 @@ target_link_libraries(fast_test
   ${PCL_LIBRARIES}
   fast_gicp
 )
+
+
+# if(CUDA_FOUND)
+#   cuda_add_executable(cuda_test src/cuda_test.cu)
+#   target_link_libraries(cuda_test
+#     ${catkin_LIBRARIES}
+#     ${PCL_LIBRARIES}
+#     fast_gicp
+#   )
+# endif()

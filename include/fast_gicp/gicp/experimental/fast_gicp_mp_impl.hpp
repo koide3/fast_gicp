@@ -1,5 +1,5 @@
-#ifndef FAST_GICP_FAST_GICP_IMPL_HPP
-#define FAST_GICP_FAST_GICP_IMPL_HPP
+#ifndef FAST_GICP_FAST_GICP_MP_IMPL_HPP
+#define FAST_GICP_FAST_GICP_MP_IMPL_HPP
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -11,13 +11,13 @@
 
 #include <sophus/so3.hpp>
 #include <fast_gicp/so3/so3.hpp>
-#include <fast_gicp/gicp/fast_gicp.hpp>
 #include <fast_gicp/opt/gauss_newton.hpp>
+#include <fast_gicp/gicp/experimental/fast_gicp_mp.hpp>
 
 namespace fast_gicp {
 
 template<typename PointSource, typename PointTarget>
-FastGICP<PointSource, PointTarget>::FastGICP() {
+FastGICPMultiPoints<PointSource, PointTarget>::FastGICPMultiPoints() {
 #ifdef _OPENMP
   num_threads_ = omp_get_max_threads();
 #else
@@ -25,20 +25,21 @@ FastGICP<PointSource, PointTarget>::FastGICP() {
 #endif
 
   k_correspondences_ = 20;
-  reg_name_ = "FastGICP";
+  reg_name_ = "FastGICPMultiPoints";
   max_iterations_ = 64;
-  rotation_epsilon_ = 2e-3;
-  transformation_epsilon_ = 5e-4;
+  rotation_epsilon_ = 1e-5;
+  transformation_epsilon_ = 1e-5;
   // corr_dist_threshold_ = 1.0;
   regularization_method_ = PLANE;
   corr_dist_threshold_ = std::numeric_limits<float>::max();
+  neighbor_search_radius_ = 0.5;
 }
 
 template<typename PointSource, typename PointTarget>
-FastGICP<PointSource, PointTarget>::~FastGICP() {}
+FastGICPMultiPoints<PointSource, PointTarget>::~FastGICPMultiPoints() {}
 
 template<typename PointSource, typename PointTarget>
-void FastGICP<PointSource, PointTarget>::setNumThreads(int n) {
+void FastGICPMultiPoints<PointSource, PointTarget>::setNumThreads(int n) {
   num_threads_ = n;
 
 #ifdef _OPENMP
@@ -49,29 +50,29 @@ void FastGICP<PointSource, PointTarget>::setNumThreads(int n) {
 }
 
 template<typename PointSource, typename PointTarget>
-void FastGICP<PointSource, PointTarget>::setCorrespondenceRandomness(int k) {
+void FastGICPMultiPoints<PointSource, PointTarget>::setCorrespondenceRandomness(int k) {
   k_correspondences_ = k;
 }
 
 template<typename PointSource, typename PointTarget>
-void FastGICP<PointSource, PointTarget>::setRegularizationMethod(RegularizationMethod method) {
+void FastGICPMultiPoints<PointSource, PointTarget>::setRegularizationMethod(RegularizationMethod method) {
   regularization_method_ = method;
 }
 
 template<typename PointSource, typename PointTarget>
-void FastGICP<PointSource, PointTarget>::setInputSource(const PointCloudSourceConstPtr& cloud) {
+void FastGICPMultiPoints<PointSource, PointTarget>::setInputSource(const PointCloudSourceConstPtr& cloud) {
   pcl::Registration<PointSource, PointTarget, Scalar>::setInputSource(cloud);
   calculate_covariances(cloud, source_kdtree, source_covs);
 }
 
 template<typename PointSource, typename PointTarget>
-void FastGICP<PointSource, PointTarget>::setInputTarget(const PointCloudTargetConstPtr& cloud) {
+void FastGICPMultiPoints<PointSource, PointTarget>::setInputTarget(const PointCloudTargetConstPtr& cloud) {
   pcl::Registration<PointSource, PointTarget, Scalar>::setInputTarget(cloud);
   calculate_covariances(cloud, target_kdtree, target_covs);
 }
 
 template<typename PointSource, typename PointTarget>
-void FastGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
+void FastGICPMultiPoints<PointSource, PointTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
   Eigen::Matrix<float, 6, 1> x0;
   x0.head<3>() = Sophus::SO3f(guess.template block<3, 3>(0, 0)).log();
   x0.tail<3>() = guess.template block<3, 1>(0, 3);
@@ -109,7 +110,7 @@ void FastGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource&
 }
 
 template<typename PointSource, typename PointTarget>
-bool FastGICP<PointSource, PointTarget>::is_converged(const Eigen::Matrix<float, 6, 1>& delta) const {
+bool FastGICPMultiPoints<PointSource, PointTarget>::is_converged(const Eigen::Matrix<float, 6, 1>& delta) const {
   double accum = 0.0;
   Eigen::Matrix3f R = Sophus::SO3f::exp(delta.head<3>()).matrix() - Eigen::Matrix3f::Identity();
   Eigen::Vector3f t = delta.tail<3>();
@@ -121,7 +122,7 @@ bool FastGICP<PointSource, PointTarget>::is_converged(const Eigen::Matrix<float,
 }
 
 template<typename PointSource, typename PointTarget>
-void FastGICP<PointSource, PointTarget>::update_correspondences(const Eigen::Matrix<float, 6, 1>& x) {
+void FastGICPMultiPoints<PointSource, PointTarget>::update_correspondences(const Eigen::Matrix<float, 6, 1>& x) {
   Eigen::Matrix4f trans = Eigen::Matrix4f::Identity();
   trans.block<3, 3>(0, 0) = Sophus::SO3f::exp(x.head<3>()).matrix();
   trans.block<3, 1>(0, 3) = x.tail<3>();
@@ -136,15 +137,19 @@ void FastGICP<PointSource, PointTarget>::update_correspondences(const Eigen::Mat
 
     std::vector<int> k_indices;
     std::vector<float> k_sq_dists;
-    target_kdtree.nearestKSearch(pt, 1, k_indices, k_sq_dists);
+    target_kdtree.radiusSearch(pt, neighbor_search_radius_, k_indices, k_sq_dists);
 
-    correspondences[i] = k_indices[0];
-    sq_distances[i] = k_sq_dists[0];
+    if(k_indices.empty()) {
+    //  target_kdtree.nearestKSearch(pt, 1, k_indices, k_sq_dists);
+    }
+
+    correspondences[i] = k_indices;
+    sq_distances[i] = k_sq_dists;
   }
 }
 
 template<typename PointSource, typename PointTarget>
-Eigen::VectorXf FastGICP<PointSource, PointTarget>::loss_ls(const Eigen::Matrix<float, 6, 1>& x, Eigen::MatrixXf* J) const {
+Eigen::VectorXf FastGICPMultiPoints<PointSource, PointTarget>::loss_ls(const Eigen::Matrix<float, 6, 1>& x, Eigen::MatrixXf* J) const {
   Eigen::Matrix4f trans = Eigen::Matrix4f::Identity();
   trans.block<3, 3>(0, 0) = Sophus::SO3f::exp(x.head<3>()).matrix();
   trans.block<3, 1>(0, 3) = x.tail<3>();
@@ -155,20 +160,35 @@ Eigen::VectorXf FastGICP<PointSource, PointTarget>::loss_ls(const Eigen::Matrix<
 
   std::atomic_int count(0);
 
-#pragma omp parallel for num_threads(num_threads_)
-  for(int i = 0; i < input_->size(); i++) {
-    int target_index = correspondences[i];
-    float sq_dist = sq_distances[i];
 
-    if(sq_dist > corr_dist_threshold_ * corr_dist_threshold_) {
+#pragma omp parallel for num_threads(num_threads_)
+  for(int i = 0; i < correspondences.size(); i++) {
+    int source_index = i;
+    const auto& mean_A = input_->at(source_index).getVector4fMap();
+    const auto& cov_A = source_covs[source_index];
+
+    const auto& k_indices = correspondences[i];
+    const auto& k_sq_dists = sq_distances[i];
+    if(k_indices.empty()) {
       continue;
     }
 
-    const auto& mean_A = input_->at(i).getVector4fMap();
-    const auto& cov_A = source_covs[i];
+    double sum_w = 0.0;
+    Eigen::Vector4d sum_mean_B = Eigen::Vector4d::Zero();
+    Eigen::Matrix4d sum_cov_B = Eigen::Matrix4d::Zero();
+    for(int j = 0; j < k_indices.size(); j++) {
+      double w = 1 - std::sqrt(k_sq_dists[j]) / neighbor_search_radius_;
+      w = std::max(1e-3, std::min(1.0, w));
+      sum_w += w;
 
-    const auto& mean_B = target_->at(target_index).getVector4fMap();
-    const auto& cov_B = target_covs[target_index];
+      int target_index = k_indices[j];
+
+      sum_mean_B += w * target_->at(target_index).getVector4fMap().template cast<double>();
+      sum_cov_B += w * target_covs[target_index].template cast<double>();
+    }
+
+    Eigen::Vector4f mean_B = (sum_mean_B / sum_w).template cast<float>();
+    Eigen::Matrix4f cov_B = (sum_cov_B / sum_w).template cast<float>();
 
     Eigen::Vector4f transed_mean_A = trans * mean_A;
     Eigen::Vector4f d = mean_B - transed_mean_A;
@@ -185,19 +205,20 @@ Eigen::VectorXf FastGICP<PointSource, PointTarget>::loss_ls(const Eigen::Matrix<
     Eigen::Matrix<float, 4, 6> jlossexp = RCR_inv * dtdx0;
 
     int n = count++;
-
     losses[n] = RCRd.head<3>();
     Js[n] = jlossexp.block<3, 6>(0, 0);
   }
 
   int final_size = count;
+  Eigen::VectorXf loss = Eigen::Map<Eigen::VectorXf>(losses.front().data(), final_size * 3);
   *J = Eigen::Map<Eigen::MatrixXf>(Js.front().data(), 6, final_size * 3).transpose();
-  return Eigen::Map<Eigen::VectorXf>(losses.front().data(), final_size * 3);
+
+  return loss;
 }
 
 template<typename PointSource, typename PointTarget>
 template<typename PointT>
-bool FastGICP<PointSource, PointTarget>::calculate_covariances(const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>>& covariances) {
+bool FastGICPMultiPoints<PointSource, PointTarget>::calculate_covariances(const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>>& covariances) {
   kdtree.setInputCloud(cloud);
   covariances.resize(cloud->size());
 

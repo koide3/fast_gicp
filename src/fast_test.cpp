@@ -3,6 +3,13 @@
 
 #include <sophus/so3.hpp>
 
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/registration/ndt.h>
+#include <pcl/registration/gicp.h>
+
 #include <fast_gicp/gicp/fast_gicp.hpp>
 #include <fast_gicp/gicp/fast_gicp_st.hpp>
 #include <fast_gicp/gicp/fast_vgicp.hpp>

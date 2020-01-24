@@ -144,8 +144,10 @@ Eigen::VectorXf FastGICPSingleThread<PointSource, PointTarget>::loss_ls(const Ei
   trans.block<3, 3>(0, 0) = Sophus::SO3f::exp(x.head<3>()).matrix();
   trans.block<3, 1>(0, 3) = x.tail<3>();
 
-  Eigen::VectorXf loss(input_->size() * 3);
-  J->resize(input_->size() * 3, 6);
+  int count = 0;
+  std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>> losses(input_->size());
+  // use row-major arrangement for ease of repacking
+  std::vector<Eigen::Matrix<float, 3, 6, Eigen::RowMajor>, Eigen::aligned_allocator<Eigen::Matrix<float, 3, 6, Eigen::RowMajor>>> Js(input_->size());
 
   for(int i = 0; i < input_->size(); i++) {
     int target_index = correspondences[i];
@@ -167,12 +169,15 @@ Eigen::VectorXf FastGICPSingleThread<PointSource, PointTarget>::loss_ls(const Ei
     RCR(3, 3) = 1;
 
     Eigen::Matrix4f RCR_inv = RCR.inverse();
-    loss.block<3, 1>(i * 3, 0) = (RCR_inv * d).eval().head<3>();
-
-    J->block<3, 3>(3 * i, 0) = RCR_inv.block<3, 3>(0, 0) * skew(transed_mean_A.head<3>());
-    J->block<3, 3>(3 * i, 3) = -RCR_inv.block<3, 3>(0, 0);
+    losses[count] = (RCR_inv * d).eval().head<3>();
+    Js[count].block<3, 3>(0, 0) = RCR_inv.block<3, 3>(0, 0) * skew(transed_mean_A.head<3>());
+    Js[count].block<3, 3>(0, 3) = -RCR_inv.block<3, 3>(0, 0);
+    count++;
   }
 
+  int final_size = count;
+  Eigen::VectorXf loss = Eigen::Map<Eigen::VectorXf>(losses.front().data(), final_size * 3);
+  *J = Eigen::Map<Eigen::MatrixXf>(Js.front().data(), 6, final_size * 3).transpose();
   return loss;
 }
 

@@ -12,6 +12,9 @@
 
 namespace fast_gicp {
 
+/**
+ * @brief Fast GICP algorithm optimized for multi threading with OpenMP
+ */
 template<typename PointSource, typename PointTarget>
 class FastGICP : public pcl::Registration<PointSource, PointTarget, float> {
 public:
@@ -63,7 +66,7 @@ private:
   template<typename PointT>
   bool calculate_covariances(const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>>& covariances);
 
-private:
+public:
   int num_threads_;
   int k_correspondences_;
   double rotation_epsilon_;

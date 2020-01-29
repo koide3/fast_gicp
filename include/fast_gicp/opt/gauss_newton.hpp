@@ -14,7 +14,7 @@ public:
     Eigen::Matrix<Scalar, N, 1> delta = JJ.llt().solve(J.transpose() * e);
 
     if(!delta.array().isFinite().all()) {
-      std::cerr << "!!!! delta corrupted !!!!" << std::endl;
+      // std::cerr << "!!!! delta corrupted !!!!" << std::endl;
       return Eigen::Matrix<Scalar, N, 1>::Random() * 1e-3;
     }
 

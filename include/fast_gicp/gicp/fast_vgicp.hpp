@@ -17,6 +17,9 @@
 
 namespace fast_gicp {
 
+/**
+ * @brief Fast Voxelized GICP algorithm boosted with OpenMP
+ */
 template<typename PointSource, typename PointTarget>
 class FastVGICP : public pcl::Registration<PointSource, PointTarget, float> {
 public:

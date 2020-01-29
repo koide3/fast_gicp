@@ -214,9 +214,11 @@ bool FastGICP<PointSource, PointTarget>::calculate_covariances(const boost::shar
     }
 
     data.colwise() -= data.rowwise().mean().eval();
-    Eigen::Matrix4f cov = data * data.transpose();
+    Eigen::Matrix4f cov = data * data.transpose() / k_correspondences_;
 
-    if(regularization_method_ == FROBENIUS) {
+    if(regularization_method_ == NONE) {
+      covariances[i] = cov;
+    } else if(regularization_method_ == FROBENIUS) {
       double lambda = 1e-3;
       Eigen::Matrix3d C = cov.block<3, 3>(0, 0).cast<double>() + lambda * Eigen::Matrix3d::Identity();
       Eigen::Matrix3d C_inv = C.inverse();

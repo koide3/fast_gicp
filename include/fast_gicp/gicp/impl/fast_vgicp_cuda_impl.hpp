@@ -1,5 +1,5 @@
-#ifndef FAST_GICP_FAST_GICP_IMPL_HPP
-#define FAST_GICP_FAST_GICP_IMPL_HPP
+#ifndef FAST_GICP_FAST_VGICP_CUDA_IMPL_HPP
+#define FAST_GICP_FAST_VGICP_CUDA_IMPL_HPP
 
 #include <atomic>
 #include <Eigen/Core>
@@ -13,19 +13,19 @@
 #include <sophus/so3.hpp>
 #include <fast_gicp/so3/so3.hpp>
 #include <fast_gicp/opt/gauss_newton.hpp>
-#include <fast_gicp/gicp/fast_vgicp.hpp>
+#include <fast_gicp/gicp/fast_vgicp_cuda.hpp>
 
 namespace fast_gicp {
 
 template<typename PointSource, typename PointTarget>
-FastVGICP<PointSource, PointTarget>::FastVGICP() {
+FastVGICPCuda<PointSource, PointTarget>::FastVGICPCuda() {
 #ifdef _OPENMP
   num_threads_ = omp_get_max_threads();
 #else
   num_threads_ = 1;
 #endif
 
-  reg_name_ = "FastVGICP";
+  reg_name_ = "FastVGICPCuda";
   max_iterations_ = 64;
   k_correspondences_ = 20;
   rotation_epsilon_ = 2e-3;
@@ -40,10 +40,10 @@ FastVGICP<PointSource, PointTarget>::FastVGICP() {
 }
 
 template<typename PointSource, typename PointTarget>
-FastVGICP<PointSource, PointTarget>::~FastVGICP() {}
+FastVGICPCuda<PointSource, PointTarget>::~FastVGICPCuda() {}
 
 template<typename PointSource, typename PointTarget>
-void FastVGICP<PointSource, PointTarget>::setNumThreads(int n) {
+void FastVGICPCuda<PointSource, PointTarget>::setNumThreads(int n) {
   num_threads_ = n;
 
 #ifdef _OPENMP
@@ -54,38 +54,38 @@ void FastVGICP<PointSource, PointTarget>::setNumThreads(int n) {
 }
 
 template<typename PointSource, typename PointTarget>
-void FastVGICP<PointSource, PointTarget>::setResolution(double resolution) {
+void FastVGICPCuda<PointSource, PointTarget>::setResolution(double resolution) {
   voxel_resolution_ = resolution;
 }
 
 template<typename PointSource, typename PointTarget>
-void FastVGICP<PointSource, PointTarget>::setCorrespondenceRandomness(int k) {
+void FastVGICPCuda<PointSource, PointTarget>::setCorrespondenceRandomness(int k) {
   k_correspondences_ = k;
 }
 
 template<typename PointSource, typename PointTarget>
-void FastVGICP<PointSource, PointTarget>::setRegularizationMethod(RegularizationMethod method) {
-    regularization_method_ = method;
+void FastVGICPCuda<PointSource, PointTarget>::setRegularizationMethod(RegularizationMethod method) {
+  regularization_method_ = method;
 }
 
 template<typename PointSource, typename PointTarget>
-void FastVGICP<PointSource, PointTarget>::setNeighborSearchMethod(NeighborSearchMethod method) {
+void FastVGICPCuda<PointSource, PointTarget>::setNeighborSearchMethod(NeighborSearchMethod method) {
   search_method_ = method;
 }
 
 template<typename PointSource, typename PointTarget>
-void FastVGICP<PointSource, PointTarget>::setVoxelAccumulationMode(VoxelAccumulationMode mode) {
+void FastVGICPCuda<PointSource, PointTarget>::setVoxelAccumulationMode(VoxelAccumulationMode mode) {
   voxel_mode_ = mode;
 }
 
 template<typename PointSource, typename PointTarget>
-void FastVGICP<PointSource, PointTarget>::setInputSource(const PointCloudSourceConstPtr& cloud) {
+void FastVGICPCuda<PointSource, PointTarget>::setInputSource(const PointCloudSourceConstPtr& cloud) {
   pcl::Registration<PointSource, PointTarget, Scalar>::setInputSource(cloud);
   calculate_covariances(cloud, source_kdtree, source_covs);
 }
 
 template<typename PointSource, typename PointTarget>
-void FastVGICP<PointSource, PointTarget>::setInputTarget(const PointCloudTargetConstPtr& cloud) {
+void FastVGICPCuda<PointSource, PointTarget>::setInputTarget(const PointCloudTargetConstPtr& cloud) {
   pcl::Registration<PointSource, PointTarget, Scalar>::setInputTarget(cloud);
   calculate_covariances(cloud, target_kdtree, target_covs);
 
@@ -105,7 +105,7 @@ void FastVGICP<PointSource, PointTarget>::setInputTarget(const PointCloudTargetC
           voxel = std::make_shared<MultiplicativeGaussianVoxel>();
           break;
       }
-      found = voxels.insert(found, std::make_pair(coord,voxel));
+      found = voxels.insert(found, std::make_pair(coord, voxel));
     }
 
     auto& voxel = found->second;
@@ -118,7 +118,7 @@ void FastVGICP<PointSource, PointTarget>::setInputTarget(const PointCloudTargetC
 }
 
 template<typename PointSource, typename PointTarget>
-void FastVGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
+void FastVGICPCuda<PointSource, PointTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
   Eigen::Matrix<float, 6, 1> x0;
   x0.head<3>() = Sophus::SO3f(guess.template block<3, 3>(0, 0)).log();
   x0.tail<3>() = guess.template block<3, 1>(0, 3);
@@ -155,7 +155,7 @@ void FastVGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource
 }
 
 template<typename PointSource, typename PointTarget>
-std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> FastVGICP<PointSource, PointTarget>::neighbor_offsets() const {
+std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> FastVGICPCuda<PointSource, PointTarget>::neighbor_offsets() const {
   switch(search_method_) {
     // clang-format off
     default:
@@ -175,7 +175,7 @@ std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> FastVGIC
         Eigen::Vector3i(0, 0, 1),
         Eigen::Vector3i(0, 0, -1)
       };
-    // clang-format on
+      // clang-format on
   }
 
   std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> offsets27;
@@ -190,18 +190,18 @@ std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> FastVGIC
 }
 
 template<typename PointSource, typename PointTarget>
-Eigen::Vector3i FastVGICP<PointSource, PointTarget>::voxel_coord(const Eigen::Vector4f& x) const {
+Eigen::Vector3i FastVGICPCuda<PointSource, PointTarget>::voxel_coord(const Eigen::Vector4f& x) const {
   return (x.array() / voxel_resolution_ - 0.5).floor().template cast<int>().template head<3>();
 }
 
 template<typename PointSource, typename PointTarget>
-Eigen::Vector4f FastVGICP<PointSource, PointTarget>::voxel_origin(const Eigen::Vector3i& coord) const {
+Eigen::Vector4f FastVGICPCuda<PointSource, PointTarget>::voxel_origin(const Eigen::Vector3i& coord) const {
   Eigen::Vector3f origin = (coord.cast<float>().array() + 0.5) * voxel_resolution_;
   return Eigen::Vector4f(origin[0], origin[1], origin[2], 1.0f);
 }
 
 template<typename PointSource, typename PointTarget>
-GaussianVoxel::Ptr FastVGICP<PointSource, PointTarget>::lookup_voxel(const Eigen::Vector3i& x) const {
+GaussianVoxel::Ptr FastVGICPCuda<PointSource, PointTarget>::lookup_voxel(const Eigen::Vector3i& x) const {
   auto found = voxels.find(x);
   if(found == voxels.end()) {
     return nullptr;
@@ -211,7 +211,7 @@ GaussianVoxel::Ptr FastVGICP<PointSource, PointTarget>::lookup_voxel(const Eigen
 }
 
 template<typename PointSource, typename PointTarget>
-bool FastVGICP<PointSource, PointTarget>::is_converged(const Eigen::Matrix<float, 6, 1>& delta) const {
+bool FastVGICPCuda<PointSource, PointTarget>::is_converged(const Eigen::Matrix<float, 6, 1>& delta) const {
   double accum = 0.0;
   Eigen::Matrix3f R = Sophus::SO3f::exp(delta.head<3>()).matrix() - Eigen::Matrix3f::Identity();
   Eigen::Vector3f t = delta.tail<3>();
@@ -223,7 +223,7 @@ bool FastVGICP<PointSource, PointTarget>::is_converged(const Eigen::Matrix<float
 }
 
 template<typename PointSource, typename PointTarget>
-Eigen::VectorXf FastVGICP<PointSource, PointTarget>::loss_ls(const Eigen::Matrix<float, 6, 1>& x, Eigen::MatrixXf* J) const {
+Eigen::VectorXf FastVGICPCuda<PointSource, PointTarget>::loss_ls(const Eigen::Matrix<float, 6, 1>& x, Eigen::MatrixXf* J) const {
   Eigen::Matrix4f trans = Eigen::Matrix4f::Identity();
   trans.block<3, 3>(0, 0) = Sophus::SO3f::exp(x.head<3>()).matrix();
   trans.block<3, 1>(0, 3) = x.tail<3>();
@@ -288,7 +288,7 @@ Eigen::VectorXf FastVGICP<PointSource, PointTarget>::loss_ls(const Eigen::Matrix
 
 template<typename PointSource, typename PointTarget>
 template<typename PointT>
-bool FastVGICP<PointSource, PointTarget>::calculate_covariances(const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>>& covariances) {
+bool FastVGICPCuda<PointSource, PointTarget>::calculate_covariances(const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>>& covariances) {
   kdtree.setInputCloud(cloud);
   covariances.resize(cloud->size());
 

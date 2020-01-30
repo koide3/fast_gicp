@@ -182,7 +182,7 @@ namespace {
     }
 
     void rehash(thrust::host_vector<thrust::pair<Eigen::Vector3i, int>>& buckets) {
-      // the bigger is the better...
+      // the bigger the better...
       int new_num_buckets = buckets.size() * 2 - 1;
       thrust::host_vector<thrust::pair<Eigen::Vector3i, int>> new_buckets(new_num_buckets);
       thrust::fill(new_buckets.begin(), new_buckets.end(), thrust::make_pair(Eigen::Vector3i(0, 0, 0), -1));
@@ -201,7 +201,7 @@ namespace {
       buckets.swap(new_buckets);
     }
 
-  private:
+  public:
     const int init_num_buckets;
     const int max_bucket_scan_count;
     const float voxel_resolution;

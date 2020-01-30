@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 
 namespace thrust {
 template<typename T>
@@ -39,6 +40,9 @@ public:
   void calculate_target_covariances();
 
   void create_target_voxelmap();
+
+  void optimize();
+  void optimize(const Eigen::Isometry3f& initial_guess);
 
   void test_print();
 

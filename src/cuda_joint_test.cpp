@@ -39,8 +39,9 @@ int main(int argc, char** argv) {
   vgicp.setCorrespondenceRandomness(50);
   vgicp.setInputSource(source_cloud);
   vgicp.setInputTarget(target_cloud);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>());
+  vgicp.align(*aligned);
   */
-
 
   std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>> source_points(source_cloud->size());
   std::transform(source_cloud->begin(), source_cloud->end(), source_points.begin(), [=](const pcl::PointXYZ& pt) { return pt.getVector3fMap(); });
@@ -65,6 +66,10 @@ int main(int argc, char** argv) {
 
   std::cout << "create voxelmap" << std::endl;
   vgicp_core->create_target_voxelmap();
+
+  std::cout << "optimize" << std::endl;
+  Eigen::Isometry3f initial_guess = Eigen::Isometry3f::Identity();
+  vgicp_core->optimize(initial_guess);
 
   std::cout << "test" << std::endl;
   vgicp_core->test_print();

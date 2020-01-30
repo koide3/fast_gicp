@@ -1,11 +1,14 @@
 #include <fast_gicp/cuda/fast_vgicp_cuda.cuh>
 
+#include <sophus/so3.hpp>
+
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 
 #include <fast_gicp/cuda/brute_force_knn.cuh>
 #include <fast_gicp/cuda/covariance_estimation.cuh>
 #include <fast_gicp/cuda/gaussian_voxelmap.cuh>
+#include <fast_gicp/cuda/compute_derivatives.cuh>
 
 namespace fast_gicp {
 
@@ -107,6 +110,30 @@ void FastVGICPCudaCore::create_target_voxelmap() {
   assert(target_points && target_covariances);
   voxelmap.reset(new GaussianVoxelMap(resolution));
   voxelmap->create_voxelmap(*target_points, *target_covariances);
+}
+
+void FastVGICPCudaCore::optimize() {
+  Eigen::Isometry3f initial_guess = Eigen::Isometry3f::Identity();
+  optimize(initial_guess);
+}
+
+void FastVGICPCudaCore::optimize(const Eigen::Isometry3f& initial_guess) {
+  assert(source_points && source_covariances && voxelmap);
+
+  Eigen::Matrix<float, 6, 1> x0;
+  x0.head<3>() = Sophus::SO3f(initial_guess.linear()).log();
+  x0.tail<3>() = initial_guess.translation();
+
+  if(x0.head<3>().norm() < 1e-1) {
+    x0.head<3>() = (Eigen::Vector3f::Random()).normalized() * 1e-1;
+  }
+
+  thrust::device_vector<Eigen::Vector3f> losses;
+  thrust::device_vector<Eigen::Matrix<float, 3, 6, Eigen::RowMajor>> Js;
+  compute_derivatives(*source_points, *source_covariances, *voxelmap, x0, losses, Js);
+
+  std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6 << "[msec]" << std::endl;
+  exit(0);
 }
 
 void FastVGICPCudaCore::test_print() {

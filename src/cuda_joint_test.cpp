@@ -1,3 +1,4 @@
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <pcl/point_types.h>
@@ -40,6 +41,7 @@ int main(int argc, char** argv) {
   vgicp.setInputTarget(target_cloud);
   */
 
+
   std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>> source_points(source_cloud->size());
   std::transform(source_cloud->begin(), source_cloud->end(), source_points.begin(), [=](const pcl::PointXYZ& pt) { return pt.getVector3fMap(); });
 
@@ -47,20 +49,28 @@ int main(int argc, char** argv) {
   std::transform(target_cloud->begin(), target_cloud->end(), target_points.begin(), [=](const pcl::PointXYZ& pt) { return pt.getVector3fMap(); });
 
   std::unique_ptr<fast_gicp::FastVGICPCudaCore> vgicp_core(new fast_gicp::FastVGICPCudaCore());
+
+  auto t1 = std::chrono::high_resolution_clock::now();
   std::cout << "set clouds" << std::endl;
   vgicp_core->set_source_cloud(source_points);
   vgicp_core->set_target_cloud(target_points);
 
   std::cout << "find neighbors" << std::endl;
-  vgicp_core->find_source_neighbors(50);
-  vgicp_core->find_target_neighbors(50);
+  vgicp_core->find_source_neighbors(20);
+  vgicp_core->find_target_neighbors(20);
 
   std::cout << "calc covariances" << std::endl;
   vgicp_core->calculate_source_covariances();
   vgicp_core->calculate_target_covariances();
 
+  std::cout << "create voxelmap" << std::endl;
+  vgicp_core->create_target_voxelmap();
+
   std::cout << "test" << std::endl;
   vgicp_core->test_print();
+  auto t2 = std::chrono::high_resolution_clock::now();
+
+  std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6 << "[msec]" << std::endl;
 
   return 0;
 }

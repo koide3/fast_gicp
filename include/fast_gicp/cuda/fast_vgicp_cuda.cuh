@@ -15,6 +15,8 @@ class device_vector;
 
 namespace fast_gicp {
 
+class GaussianVoxelMap;
+
 class FastVGICPCudaCore {
 public:
   using Points = thrust::device_vector<Eigen::Vector3f, thrust::device_allocator<Eigen::Vector3f>>;
@@ -36,6 +38,8 @@ public:
   void calculate_source_covariances();
   void calculate_target_covariances();
 
+  void create_target_voxelmap();
+
   void test_print();
 
 private:
@@ -50,6 +54,7 @@ private:
   std::unique_ptr<Matrices> source_covariances;
   std::unique_ptr<Matrices> target_covariances;
 
+  std::unique_ptr<GaussianVoxelMap> voxelmap;
 };
 
 } // namespace fast_gicp

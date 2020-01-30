@@ -3,14 +3,17 @@
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 
-#include <fast_gicp/cuda/voxelmap.cuh>
 #include <fast_gicp/cuda/brute_force_knn.cuh>
 #include <fast_gicp/cuda/covariance_estimation.cuh>
+#include <fast_gicp/cuda/gaussian_voxelmap.cuh>
 
 namespace fast_gicp {
 
 FastVGICPCudaCore::FastVGICPCudaCore() {
   resolution = 1.0;
+
+  // warming up GPU
+  cudaDeviceSynchronize();
 }
 FastVGICPCudaCore ::~FastVGICPCudaCore() {}
 
@@ -26,9 +29,6 @@ void FastVGICPCudaCore::set_source_cloud(const std::vector<Eigen::Vector3f, Eige
 void FastVGICPCudaCore::set_target_cloud(const std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>>& cloud) {
   thrust::host_vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>> points(cloud.begin(), cloud.end());
   target_points.reset(new Points(points));
-
-  VoxelMapCuda voxelmap(resolution);
-  voxelmap.create_hashtable(*target_points);
 }
 
 void FastVGICPCudaCore::set_source_neighbors(int k, const std::vector<int>& neighbors) {
@@ -103,7 +103,14 @@ void FastVGICPCudaCore::calculate_target_covariances() {
   covariance_estimation(*target_points, k, *target_neighbors, *target_covariances);
 }
 
+void FastVGICPCudaCore::create_target_voxelmap() {
+  assert(target_points && target_covariances);
+  voxelmap.reset(new GaussianVoxelMap(resolution));
+  voxelmap->create_voxelmap(*target_points, *target_covariances);
+}
+
 void FastVGICPCudaCore::test_print() {
+  return;
   thrust::host_vector<Eigen::Matrix3f, Eigen::aligned_allocator<Eigen::Matrix3f>> covs = *source_covariances;
 
   for(int i = 0; i < 10; i++) {

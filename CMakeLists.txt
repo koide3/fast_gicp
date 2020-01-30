@@ -74,6 +74,9 @@ target_link_libraries(fast_test
 
 
 if(CUDA_FOUND)
+  # --expt-relaxed-constexpr
+  set(CUDA_NVCC_FLAGS "--expt-relaxed-constexpr")
+
   cuda_add_library(fast_vgicp_cuda
     src/fast_gicp/cuda/fast_vgicp_cuda.cu
   )

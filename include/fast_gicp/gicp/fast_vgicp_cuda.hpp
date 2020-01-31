@@ -1,8 +1,6 @@
 #ifndef FAST_GICP_FAST_VGICP_CUDA_HPP
 #define FAST_GICP_FAST_VGICP_CUDA_HPP
 
-#include <unordered_map>
-
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
@@ -13,12 +11,15 @@
 
 #include <sophus/so3.hpp>
 #include <fast_gicp/gicp/gicp_settings.hpp>
-#include <fast_gicp/gicp/fast_vgicp_voxel.hpp>
 
 namespace fast_gicp {
 
+class FastVGICPCudaCore;
+
+enum NearestNeighborMethod { CPU_PARALLEL_KDTREE, GPU_BRUTEFORCE };
+
 /**
- * @brief Fast Voxelized GICP algorithm boosted with OpenMP
+ * @brief Fast Voxelized GICP algorithm boosted with CUDA
  */
 template<typename PointSource, typename PointTarget>
 class FastVGICPCuda : public pcl::Registration<PointSource, PointTarget, float> {
@@ -34,6 +35,8 @@ public:
   using PointCloudTargetPtr = typename PointCloudTarget::Ptr;
   using PointCloudTargetConstPtr = typename PointCloudTarget::ConstPtr;
 
+  using Ptr = boost::shared_ptr<FastVGICPCuda<PointSource, PointTarget>>;
+
   using pcl::Registration<PointSource, PointTarget, Scalar>::reg_name_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::input_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::target_;
@@ -48,17 +51,11 @@ public:
   FastVGICPCuda();
   virtual ~FastVGICPCuda() override;
 
-  void setNumThreads(int n);
-
   void setResolution(double resolution);
 
   void setCorrespondenceRandomness(int k);
 
   void setRegularizationMethod(RegularizationMethod method);
-
-  void setNeighborSearchMethod(NeighborSearchMethod method);
-
-  void setVoxelAccumulationMode(VoxelAccumulationMode mode);
 
   virtual void setInputSource(const PointCloudSourceConstPtr& cloud) override;
 
@@ -67,39 +64,23 @@ public:
 protected:
   virtual void computeTransformation(PointCloudSource& output, const Matrix4& guess) override;
 
-private:
-  std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> neighbor_offsets() const;
-
-  Eigen::Vector3i voxel_coord(const Eigen::Vector4f& x) const;
-  Eigen::Vector4f voxel_origin(const Eigen::Vector3i& coord) const;
-  GaussianVoxel::Ptr lookup_voxel(const Eigen::Vector3i& x) const;
-
-  bool is_converged(const Eigen::Matrix<float, 6, 1>& delta) const;
-
-  Eigen::VectorXf loss_ls(const Eigen::Matrix<float, 6, 1>& x, Eigen::MatrixXf* J) const;
-
   template<typename PointT>
-  bool calculate_covariances(const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>>& covariances);
+  std::vector<int> find_neighbors_parallel_kdtree(int k, const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree) const;
 
 private:
-  int num_threads_;
+private:
   int k_correspondences_;
   double rotation_epsilon_;
 
   pcl::search::KdTree<PointSource> source_kdtree;
   pcl::search::KdTree<PointTarget> target_kdtree;
 
-  std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>> source_covs;
-  std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>> target_covs;
-
   double voxel_resolution_;
-  NeighborSearchMethod search_method_;
   RegularizationMethod regularization_method_;
-  VoxelAccumulationMode voxel_mode_;
+  NearestNeighborMethod neighbor_search_method_;
 
-  using VoxelMap = std::unordered_map<Eigen::Vector3i, GaussianVoxel::Ptr, Vector3iHash, std::equal_to<Eigen::Vector3i>, Eigen::aligned_allocator<std::pair<Eigen::Vector3i, GaussianVoxel::Ptr>>>;
-  VoxelMap voxels;
-};
+  std::unique_ptr<FastVGICPCudaCore> vgicp_cuda;
+  };
 }  // namespace fast_gicp
 
 #endif

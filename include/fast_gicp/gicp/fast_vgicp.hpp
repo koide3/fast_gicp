@@ -34,6 +34,8 @@ public:
   using PointCloudTargetPtr = typename PointCloudTarget::Ptr;
   using PointCloudTargetConstPtr = typename PointCloudTarget::ConstPtr;
 
+  using Ptr = boost::shared_ptr<FastVGICP<PointSource, PointTarget>>;
+
   using pcl::Registration<PointSource, PointTarget, Scalar>::reg_name_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::input_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::target_;

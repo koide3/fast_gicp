@@ -88,7 +88,7 @@ struct compute_derivatives_kernel {
     Eigen::Vector3f& loss = thrust::get<2>(tuple);
     Eigen::Matrix<float, 3, 6, Eigen::RowMajor>& J = thrust::get<3>(tuple);
 
-    loss = num_points * (RCR_inv * d);
+    loss = (RCR_inv * d);
     J.block<3, 3>(0, 0) = RCR_inv * skew_mean_A;
     J.block<3, 3>(0, 3) = -RCR_inv;
   }

@@ -1,10 +1,12 @@
-#ifndef FAST_GICP_FAST_VGICP_CUDA_CUH
-#define FAST_GICP_FAST_VGICP_CUDA_CUH
+#ifndef FAST_GICP_FAST_VGICP_CUDA_CORE_CUH
+#define FAST_GICP_FAST_VGICP_CUDA_CORE_CUH
 
 #include <memory>
 #include <vector>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+
+struct cublasContext;
 
 namespace thrust {
 template<typename T>
@@ -12,7 +14,7 @@ class device_allocator;
 
 template<typename T, typename Alloc>
 class device_vector;
-}
+}  // namespace thrust
 
 namespace fast_gicp {
 
@@ -24,6 +26,7 @@ public:
   using Indices = thrust::device_vector<int, thrust::device_allocator<int>>;
   using Matrices = thrust::device_vector<Eigen::Matrix3f, thrust::device_allocator<Eigen::Matrix3f>>;
 
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   FastVGICPCudaCore();
   ~FastVGICPCudaCore();
 
@@ -41,13 +44,20 @@ public:
 
   void create_target_voxelmap();
 
-  void optimize();
-  void optimize(const Eigen::Isometry3f& initial_guess);
-
-  void test_print();
+  bool optimize(Eigen::Isometry3f& estimated);
+  bool optimize(const Eigen::Isometry3f& initial_guess, Eigen::Isometry3f& estimated);
 
 private:
+  bool is_converged(const Eigen::Matrix<float, 6, 1>& delta) const;
+
+private:
+  cublasContext* cublas_handle;
+
   double resolution;
+
+  int max_iterations;
+  double rotation_epsilon;
+  double transformation_epsilon;
 
   std::unique_ptr<Points> source_points;
   std::unique_ptr<Points> target_points;
@@ -61,7 +71,6 @@ private:
   std::unique_ptr<GaussianVoxelMap> voxelmap;
 };
 
-} // namespace fast_gicp
-
+}  // namespace fast_gicp
 
 #endif

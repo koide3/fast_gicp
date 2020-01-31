@@ -93,7 +93,7 @@ namespace {
 
   class GaussianVoxelMap {
   public:
-    GaussianVoxelMap(float resolution, int init_num_buckets = 8192 * 2, int max_bucket_scan_count = 10) : init_num_buckets(init_num_buckets), max_bucket_scan_count(max_bucket_scan_count), voxel_resolution(resolution) {}
+    GaussianVoxelMap(float resolution, int init_num_buckets = 8192 * 4, int max_bucket_scan_count = 10) : init_num_buckets(init_num_buckets), max_bucket_scan_count(max_bucket_scan_count), voxel_resolution(resolution) {}
 
     void create_voxelmap(const thrust::device_vector<Eigen::Vector3f>& points, const thrust::device_vector<Eigen::Matrix3f>& covariances) {
       thrust::device_vector<Eigen::Vector3i> voxel_coords(points.size());

@@ -2,6 +2,7 @@
 
 #include <sophus/so3.hpp>
 
+#include <thrust/device_new.h>
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 
@@ -13,10 +14,15 @@
 namespace fast_gicp {
 
 FastVGICPCudaCore::FastVGICPCudaCore() {
-  resolution = 1.0;
-
   // warming up GPU
   cudaDeviceSynchronize();
+  cublasCreate(&cublas_handle);
+
+  resolution = 1.0;
+
+  max_iterations = 64;
+  rotation_epsilon = 2e-3;
+  transformation_epsilon = 5e-4;
 }
 FastVGICPCudaCore ::~FastVGICPCudaCore() {}
 
@@ -110,14 +116,26 @@ void FastVGICPCudaCore::create_target_voxelmap() {
   assert(target_points && target_covariances);
   voxelmap.reset(new GaussianVoxelMap(resolution));
   voxelmap->create_voxelmap(*target_points, *target_covariances);
+
+  cudaDeviceSynchronize();
 }
 
-void FastVGICPCudaCore::optimize() {
+bool FastVGICPCudaCore::is_converged(const Eigen::Matrix<float, 6, 1>& delta) const {
+  Eigen::Matrix3f R = Sophus::SO3f::exp(delta.head<3>()).matrix() - Eigen::Matrix3f::Identity();
+  Eigen::Vector3f t = delta.tail<3>();
+
+  Eigen::Matrix3f r_delta = 1.0 / rotation_epsilon * R.array().abs();
+  Eigen::Vector3f t_delta = 1.0 / transformation_epsilon * t.array().abs();
+
+  return std::max(r_delta.maxCoeff(), t_delta.maxCoeff()) < 1;
+}
+
+bool FastVGICPCudaCore::optimize(Eigen::Isometry3f& estimated) {
   Eigen::Isometry3f initial_guess = Eigen::Isometry3f::Identity();
-  optimize(initial_guess);
+  return optimize(initial_guess, estimated);
 }
 
-void FastVGICPCudaCore::optimize(const Eigen::Isometry3f& initial_guess) {
+bool FastVGICPCudaCore::optimize(const Eigen::Isometry3f& initial_guess, Eigen::Isometry3f& estimated) {
   assert(source_points && source_covariances && voxelmap);
 
   Eigen::Matrix<float, 6, 1> x0;
@@ -128,22 +146,51 @@ void FastVGICPCudaCore::optimize(const Eigen::Isometry3f& initial_guess) {
     x0.head<3>() = (Eigen::Vector3f::Random()).normalized() * 1e-1;
   }
 
-  thrust::device_vector<Eigen::Vector3f> losses;
-  thrust::device_vector<Eigen::Matrix<float, 3, 6, Eigen::RowMajor>> Js;
-  compute_derivatives(*source_points, *source_covariances, *voxelmap, x0, losses, Js);
+  thrust::device_vector<Eigen::Vector3f> losses;                            // 3N error vector
+  thrust::device_vector<Eigen::Matrix<float, 3, 6, Eigen::RowMajor>> Js;    // RowMajor 3Nx6 -> ColMajor 6x3N
 
-  std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6 << "[msec]" << std::endl;
-  exit(0);
-}
+  thrust::device_ptr<float> JJ_ptr = thrust::device_new<float>(6 * 6);
+  thrust::device_ptr<float> J_loss_ptr = thrust::device_new<float>(6);
 
-void FastVGICPCudaCore::test_print() {
-  return;
-  thrust::host_vector<Eigen::Matrix3f, Eigen::aligned_allocator<Eigen::Matrix3f>> covs = *source_covariances;
+  bool converged = false;
+  for(int i = 0; i < max_iterations; i++) {
+    compute_derivatives(*source_points, *source_covariances, *voxelmap, x0, losses, Js);
 
-  for(int i = 0; i < 10; i++) {
-    std::cout << "--- " << i << " ---" << std::endl;
-    std::cout << covs[i] << std::endl;
+    // gauss newton
+    float alpha = 1.0f;
+    float beta = 0.0f;
+
+    int cols = 3 * losses.size();
+
+    float* Js_ptr = thrust::reinterpret_pointer_cast<float*>(Js.data());
+    cublasSgemm(cublas_handle, CUBLAS_OP_N, CUBLAS_OP_T, 6, 6, cols, &alpha, Js_ptr, 6, Js_ptr, 6, &beta, thrust::raw_pointer_cast(JJ_ptr), 6);
+
+    float* loss_ptr = thrust::reinterpret_pointer_cast<float*>(losses.data());
+    cublasSgemv(cublas_handle, CUBLAS_OP_N, 6, cols, &alpha, Js_ptr, 6, loss_ptr, 1, &beta, thrust::raw_pointer_cast(J_loss_ptr), 1);
+
+    Eigen::Matrix<float, 6, 6> JJ;
+    cublasGetMatrix(6, 6, sizeof(float), thrust::raw_pointer_cast(JJ_ptr), 6, JJ.data(), 6);
+
+    Eigen::Matrix<float, 6, 1> J_loss;
+    cublasGetVector(6, sizeof(float), thrust::raw_pointer_cast(J_loss_ptr), 1, J_loss.data(), 1);
+
+    Eigen::Matrix<float, 6, 1> delta = JJ.llt().solve(J_loss);
+
+    // update parameters
+    x0.head<3>() = (Sophus::SO3f::exp(-delta.head<3>()) * Sophus::SO3f::exp(x0.head<3>())).log();
+    x0.tail<3>() -= delta.tail<3>();
+
+    if(is_converged(delta)) {
+      converged = true;
+      break;
+    }
   }
+
+  estimated.setIdentity();
+  estimated.linear() = Sophus::SO3f::exp(x0.head<3>()).matrix();
+  estimated.translation() = x0.tail<3>();
+
+  return converged;
 }
 
 }  // namespace fast_gicp

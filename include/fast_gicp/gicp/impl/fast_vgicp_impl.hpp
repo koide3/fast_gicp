@@ -212,7 +212,6 @@ GaussianVoxel::Ptr FastVGICP<PointSource, PointTarget>::lookup_voxel(const Eigen
 
 template<typename PointSource, typename PointTarget>
 bool FastVGICP<PointSource, PointTarget>::is_converged(const Eigen::Matrix<float, 6, 1>& delta) const {
-  double accum = 0.0;
   Eigen::Matrix3f R = Sophus::SO3f::exp(delta.head<3>()).matrix() - Eigen::Matrix3f::Identity();
   Eigen::Vector3f t = delta.tail<3>();
 

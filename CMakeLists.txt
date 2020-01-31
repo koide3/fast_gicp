@@ -86,20 +86,15 @@ if(CUDA_FOUND)
     thirdparty/Eigen
     thirdparty/nvbio
   )
-
-  cuda_add_executable(cuda_test
-    src/fast_gicp/cuda/cuda_test.cu
-  )
-  target_include_directories(cuda_test PRIVATE
-    include
-    thirdparty/Eigen
-  )
-  target_link_libraries(cuda_test
-    fast_vgicp_cuda
+  target_link_libraries(fast_vgicp_cuda
+    cublas
   )
 
   target_sources(fast_gicp PRIVATE
     src/fast_gicp/gicp/fast_vgicp_cuda.cpp
+  )
+  target_link_libraries(fast_gicp
+    fast_vgicp_cuda
   )
   add_dependencies(fast_gicp fast_vgicp_cuda)
 

@@ -11,6 +11,9 @@
 
 namespace fast_gicp {
 
+/**
+ * @brief Fast GICP algorithm optimized for single threading
+ */
 template<typename PointSource, typename PointTarget>
 class FastGICPSingleThread : public pcl::Registration<PointSource, PointTarget, float> {
 public:
@@ -42,9 +45,17 @@ public:
   FastGICPSingleThread();
   virtual ~FastGICPSingleThread() override;
 
+  void setRotationEpsilon(double eps);
+
   void setCorrespondenceRandomness(int k);
 
   void setRegularizationMethod(RegularizationMethod method);
+
+  void swapSourceAndTarget();
+
+  void clearSource();
+
+  void clearTarget();
 
   virtual void setInputSource(const PointCloudSourceConstPtr& cloud) override;
 
@@ -68,8 +79,8 @@ private:
   int k_correspondences_;
   RegularizationMethod regularization_method_;
 
-  pcl::search::KdTree<PointSource> source_kdtree;
-  pcl::search::KdTree<PointTarget> target_kdtree;
+  std::unique_ptr<pcl::search::KdTree<PointSource>> source_kdtree;
+  std::unique_ptr<pcl::search::KdTree<PointTarget>> target_kdtree;
 
   std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>> source_covs;
   std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>> target_covs;

@@ -1,5 +1,5 @@
-#ifndef FAST_GICP_FAST_GICP_IMPL_HPP
-#define FAST_GICP_FAST_GICP_IMPL_HPP
+#ifndef FAST_GICP_FAST_VGICP_IMPL_HPP
+#define FAST_GICP_FAST_VGICP_IMPL_HPP
 
 #include <atomic>
 #include <Eigen/Core>
@@ -34,13 +34,21 @@ FastVGICP<PointSource, PointTarget>::FastVGICP() {
   regularization_method_ = PLANE;
   corr_dist_threshold_ = std::numeric_limits<float>::max();
 
-  voxel_resolution_ = 0.5;
+  voxel_resolution_ = 1.0;
   search_method_ = DIRECT1;
   voxel_mode_ = ADDITIVE;
+
+  source_kdtree.reset(new pcl::search::KdTree<PointSource>);
+  target_kdtree.reset(new pcl::search::KdTree<PointTarget>);
 }
 
 template<typename PointSource, typename PointTarget>
 FastVGICP<PointSource, PointTarget>::~FastVGICP() {}
+
+template<typename PointSource, typename PointTarget>
+void FastVGICP<PointSource, PointTarget>::setRotationEpsilon(double eps) {
+  rotation_epsilon_ = eps;
+}
 
 template<typename PointSource, typename PointTarget>
 void FastVGICP<PointSource, PointTarget>::setNumThreads(int n) {
@@ -65,7 +73,7 @@ void FastVGICP<PointSource, PointTarget>::setCorrespondenceRandomness(int k) {
 
 template<typename PointSource, typename PointTarget>
 void FastVGICP<PointSource, PointTarget>::setRegularizationMethod(RegularizationMethod method) {
-    regularization_method_ = method;
+  regularization_method_ = method;
 }
 
 template<typename PointSource, typename PointTarget>
@@ -79,16 +87,49 @@ void FastVGICP<PointSource, PointTarget>::setVoxelAccumulationMode(VoxelAccumula
 }
 
 template<typename PointSource, typename PointTarget>
+void FastVGICP<PointSource, PointTarget>::swapSourceAndTarget() {
+  input_.swap(target_);
+  source_kdtree.swap(target_kdtree);
+  source_covs.swap(target_covs);
+
+  if(target_) {
+    create_voxelmap(target_);
+  }
+}
+
+template<typename PointSource, typename PointTarget>
+void FastVGICP<PointSource, PointTarget>::clearSource() {
+  input_.reset();
+}
+
+template<typename PointSource, typename PointTarget>
+void FastVGICP<PointSource, PointTarget>::clearTarget() {
+  target_.reset();
+}
+
+template<typename PointSource, typename PointTarget>
 void FastVGICP<PointSource, PointTarget>::setInputSource(const PointCloudSourceConstPtr& cloud) {
+  if(input_ == cloud) {
+    return;
+  }
+
   pcl::Registration<PointSource, PointTarget, Scalar>::setInputSource(cloud);
-  calculate_covariances(cloud, source_kdtree, source_covs);
+  calculate_covariances(cloud, *source_kdtree, source_covs);
 }
 
 template<typename PointSource, typename PointTarget>
 void FastVGICP<PointSource, PointTarget>::setInputTarget(const PointCloudTargetConstPtr& cloud) {
-  pcl::Registration<PointSource, PointTarget, Scalar>::setInputTarget(cloud);
-  calculate_covariances(cloud, target_kdtree, target_covs);
+  if(target_ == cloud) {
+    return;
+  }
 
+  pcl::Registration<PointSource, PointTarget, Scalar>::setInputTarget(cloud);
+  calculate_covariances(cloud, *target_kdtree, target_covs);
+  create_voxelmap(cloud);
+}
+
+template<typename PointSource, typename PointTarget>
+void FastVGICP<PointSource, PointTarget>::create_voxelmap(const PointCloudTargetConstPtr& cloud) {
   voxels.clear();
   for(int i = 0; i < cloud->size(); i++) {
     Eigen::Vector3i coord = voxel_coord(cloud->at(i).getVector4fMap());
@@ -105,7 +146,7 @@ void FastVGICP<PointSource, PointTarget>::setInputTarget(const PointCloudTargetC
           voxel = std::make_shared<MultiplicativeGaussianVoxel>();
           break;
       }
-      found = voxels.insert(found, std::make_pair(coord,voxel));
+      found = voxels.insert(found, std::make_pair(coord, voxel));
     }
 
     auto& voxel = found->second;
@@ -123,8 +164,8 @@ void FastVGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource
   x0.head<3>() = Sophus::SO3f(guess.template block<3, 3>(0, 0)).log();
   x0.tail<3>() = guess.template block<3, 1>(0, 3);
 
-  if(x0.head<3>().norm() < 1e-1) {
-    x0.head<3>() = (Eigen::Vector3f::Random()).normalized() * 1e-1;
+  if(x0.head<3>().norm() < 1e-2) {
+    x0.head<3>() = (Eigen::Vector3f::Random()).normalized() * 1e-2;
   }
 
   converged_ = false;
@@ -212,7 +253,6 @@ GaussianVoxel::Ptr FastVGICP<PointSource, PointTarget>::lookup_voxel(const Eigen
 
 template<typename PointSource, typename PointTarget>
 bool FastVGICP<PointSource, PointTarget>::is_converged(const Eigen::Matrix<float, 6, 1>& delta) const {
-  double accum = 0.0;
   Eigen::Matrix3f R = Sophus::SO3f::exp(delta.head<3>()).matrix() - Eigen::Matrix3f::Identity();
   Eigen::Vector3f t = delta.tail<3>();
 

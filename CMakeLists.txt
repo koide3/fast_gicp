@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.10.0)
 project(fast_gicp)
 
 add_definitions(-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2)
@@ -18,6 +18,13 @@ if (OPENMP_FOUND)
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
+
+find_package(CUDA REQUIRED)
+if(CUDA_FOUND)
+  include_directories(${CUDA_INCLUDE_DIRS})
+  link_directories(${CUDA_LIBRARY_DIRS})
+endif()
+
 ###################################
 ## catkin specific configuration ##
 ###################################
@@ -32,22 +39,22 @@ catkin_package(
 ## Build ##
 ###########
 
-include_directories(
-  include
-  thirdparty/Sophus
-  ${PCL_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIR}
-  ${catkin_INCLUDE_DIRS}
-)
-
 add_library(fast_gicp
   src/fast_gicp/gicp/fast_gicp.cpp
   src/fast_gicp/gicp/fast_gicp_st.cpp
   src/fast_gicp/gicp/fast_vgicp.cpp
   src/fast_gicp/gicp/experimental/fast_gicp_mp.cpp
 )
+
 target_link_libraries(fast_gicp
   ${PCL_LIBRARIES}
+)
+target_include_directories(fast_gicp PUBLIC
+  include
+  thirdparty/Sophus
+  ${PCL_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIR}
+  ${catkin_INCLUDE_DIRS}
 )
 
 add_executable(gicp_align src/align.cpp)
@@ -58,9 +65,30 @@ target_link_libraries(gicp_align
   fast_gicp
 )
 
-add_executable(fast_test src/fast_test.cpp)
-target_link_libraries(fast_test
-  ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES}
-  fast_gicp
-)
+
+if(CUDA_FOUND)
+  set(CUDA_NVCC_FLAGS "--expt-relaxed-constexpr")
+  add_definitions(-DUSE_VGICP_CUDA)
+
+  cuda_add_library(fast_vgicp_cuda
+    src/fast_gicp/cuda/fast_vgicp_cuda.cu
+  )
+  target_include_directories(fast_vgicp_cuda PRIVATE
+    include
+    thirdparty/Sophus
+    thirdparty/Eigen
+    thirdparty/nvbio
+  )
+  target_link_libraries(fast_vgicp_cuda
+    cublas
+  )
+
+  # add vgicp_cuda to libfast_gicp
+  target_sources(fast_gicp PRIVATE
+    src/fast_gicp/gicp/fast_vgicp_cuda.cpp
+  )
+  target_link_libraries(fast_gicp
+    fast_vgicp_cuda
+  )
+  add_dependencies(fast_gicp fast_vgicp_cuda)
+endif()

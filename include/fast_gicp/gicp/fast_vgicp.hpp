@@ -17,6 +17,9 @@
 
 namespace fast_gicp {
 
+/**
+ * @brief Fast Voxelized GICP algorithm boosted with OpenMP
+ */
 template<typename PointSource, typename PointTarget>
 class FastVGICP : public pcl::Registration<PointSource, PointTarget, float> {
 public:
@@ -30,6 +33,8 @@ public:
   using PointCloudTarget = typename pcl::Registration<PointSource, PointTarget, Scalar>::PointCloudTarget;
   using PointCloudTargetPtr = typename PointCloudTarget::Ptr;
   using PointCloudTargetConstPtr = typename PointCloudTarget::ConstPtr;
+
+  using Ptr = boost::shared_ptr<FastVGICP<PointSource, PointTarget>>;
 
   using pcl::Registration<PointSource, PointTarget, Scalar>::reg_name_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::input_;
@@ -45,6 +50,8 @@ public:
   FastVGICP();
   virtual ~FastVGICP() override;
 
+  void setRotationEpsilon(double eps);
+
   void setNumThreads(int n);
 
   void setResolution(double resolution);
@@ -57,6 +64,12 @@ public:
 
   void setVoxelAccumulationMode(VoxelAccumulationMode mode);
 
+  void swapSourceAndTarget();
+
+  void clearSource();
+
+  void clearTarget();
+
   virtual void setInputSource(const PointCloudSourceConstPtr& cloud) override;
 
   virtual void setInputTarget(const PointCloudTargetConstPtr& cloud) override;
@@ -65,6 +78,7 @@ protected:
   virtual void computeTransformation(PointCloudSource& output, const Matrix4& guess) override;
 
 private:
+  void create_voxelmap(const PointCloudTargetConstPtr& cloud);
   std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> neighbor_offsets() const;
 
   Eigen::Vector3i voxel_coord(const Eigen::Vector4f& x) const;
@@ -83,8 +97,8 @@ private:
   int k_correspondences_;
   double rotation_epsilon_;
 
-  pcl::search::KdTree<PointSource> source_kdtree;
-  pcl::search::KdTree<PointTarget> target_kdtree;
+  std::unique_ptr<pcl::search::KdTree<PointSource>> source_kdtree;
+  std::unique_ptr<pcl::search::KdTree<PointTarget>> target_kdtree;
 
   std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>> source_covs;
   std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>> target_covs;

@@ -3,7 +3,7 @@
 
 namespace fast_gicp {
 
-enum RegularizationMethod { MIN_EIG, NORMALIZED_MIN_EIG, PLANE, FROBENIUS };
+enum RegularizationMethod { NONE, MIN_EIG, NORMALIZED_MIN_EIG, PLANE, FROBENIUS };
 
 enum NeighborSearchMethod { DIRECT27, DIRECT7, DIRECT1 };
 

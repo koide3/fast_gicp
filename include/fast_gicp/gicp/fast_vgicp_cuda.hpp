@@ -1,5 +1,5 @@
-#ifndef FAST_GICP_FAST_GICP_HPP
-#define FAST_GICP_FAST_GICP_HPP
+#ifndef FAST_GICP_FAST_VGICP_CUDA_HPP
+#define FAST_GICP_FAST_VGICP_CUDA_HPP
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -8,15 +8,21 @@
 #include <pcl/point_cloud.h>
 #include <pcl/search/kdtree.h>
 #include <pcl/registration/registration.h>
+
+#include <sophus/so3.hpp>
 #include <fast_gicp/gicp/gicp_settings.hpp>
 
 namespace fast_gicp {
 
+class FastVGICPCudaCore;
+
+enum NearestNeighborMethod { CPU_PARALLEL_KDTREE, GPU_BRUTEFORCE };
+
 /**
- * @brief Fast GICP algorithm optimized for multi threading with OpenMP
+ * @brief Fast Voxelized GICP algorithm boosted with CUDA
  */
 template<typename PointSource, typename PointTarget>
-class FastGICP : public pcl::Registration<PointSource, PointTarget, float> {
+class FastVGICPCuda : public pcl::Registration<PointSource, PointTarget, float> {
 public:
   using Scalar = float;
   using Matrix4 = typename pcl::Registration<PointSource, PointTarget, Scalar>::Matrix4;
@@ -29,6 +35,8 @@ public:
   using PointCloudTargetPtr = typename PointCloudTarget::Ptr;
   using PointCloudTargetConstPtr = typename PointCloudTarget::ConstPtr;
 
+  using Ptr = boost::shared_ptr<FastVGICPCuda<PointSource, PointTarget>>;
+
   using pcl::Registration<PointSource, PointTarget, Scalar>::reg_name_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::input_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::target_;
@@ -40,16 +48,18 @@ public:
   using pcl::Registration<PointSource, PointTarget, Scalar>::converged_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::corr_dist_threshold_;
 
-  FastGICP();
-  virtual ~FastGICP() override;
-
-  void setNumThreads(int n);
+  FastVGICPCuda();
+  virtual ~FastVGICPCuda() override;
 
   void setRotationEpsilon(double eps);
+
+  void setResolution(double resolution);
 
   void setCorrespondenceRandomness(int k);
 
   void setRegularizationMethod(RegularizationMethod method);
+
+  void setNearesetNeighborSearchMethod(NearestNeighborMethod method);
 
   void swapSourceAndTarget();
 
@@ -64,32 +74,23 @@ public:
 protected:
   virtual void computeTransformation(PointCloudSource& output, const Matrix4& guess) override;
 
-private:
-  bool is_converged(const Eigen::Matrix<float, 6, 1>& delta) const;
-
-  void update_correspondences(const Eigen::Matrix<float, 6, 1>& x);
-
-  Eigen::VectorXf loss_ls(const Eigen::Matrix<float, 6, 1>& x, Eigen::MatrixXf* J) const;
-
   template<typename PointT>
-  bool calculate_covariances(const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>>& covariances);
+  std::vector<int> find_neighbors_parallel_kdtree(int k, const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree) const;
 
-public:
-  int num_threads_;
+private:
+private:
   int k_correspondences_;
   double rotation_epsilon_;
 
+  pcl::search::KdTree<PointSource> source_kdtree;
+  pcl::search::KdTree<PointTarget> target_kdtree;
+
+  double voxel_resolution_;
   RegularizationMethod regularization_method_;
+  NearestNeighborMethod neighbor_search_method_;
 
-  std::unique_ptr<pcl::search::KdTree<PointSource>> source_kdtree;
-  std::unique_ptr<pcl::search::KdTree<PointTarget>> target_kdtree;
-
-  std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>> source_covs;
-  std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>> target_covs;
-
-  std::vector<int> correspondences;
-  std::vector<float> sq_distances;
-};
+  std::unique_ptr<FastVGICPCudaCore> vgicp_cuda;
+  };
 }  // namespace fast_gicp
 
 #endif

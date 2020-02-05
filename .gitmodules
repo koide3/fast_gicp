@@ -1,3 +1,9 @@
 [submodule "thidparty/Sophus"]
 	path = thirdparty/Sophus
 	url = https://github.com/strasdat/Sophus.git
+[submodule "thirdparty/Eigen"]
+	path = thirdparty/Eigen
+	url = https://github.com/eigenteam/eigen-git-mirror.git
+[submodule "thirdparty/nvbio"]
+	path = thirdparty/nvbio
+	url = https://github.com/NVlabs/nvbio.git

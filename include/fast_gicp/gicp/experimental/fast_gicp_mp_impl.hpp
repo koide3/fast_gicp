@@ -39,6 +39,11 @@ template<typename PointSource, typename PointTarget>
 FastGICPMultiPoints<PointSource, PointTarget>::~FastGICPMultiPoints() {}
 
 template<typename PointSource, typename PointTarget>
+void FastGICPMultiPoints<PointSource, PointTarget>::setRotationEpsilon(double eps) {
+  rotation_epsilon_ = eps;
+}
+
+template<typename PointSource, typename PointTarget>
 void FastGICPMultiPoints<PointSource, PointTarget>::setNumThreads(int n) {
   num_threads_ = n;
 
@@ -77,9 +82,9 @@ void FastGICPMultiPoints<PointSource, PointTarget>::computeTransformation(PointC
   x0.head<3>() = Sophus::SO3f(guess.template block<3, 3>(0, 0)).log();
   x0.tail<3>() = guess.template block<3, 1>(0, 3);
 
-  if(x0.head<3>().norm() < 1e-1) {
-    x0.head<3>() = (Eigen::Vector3f::Random()).normalized() * 1e-1;
-  }
+  // if(x0.head<3>().norm() < 1e-2) {
+  //   x0.head<3>() = (Eigen::Vector3f::Random()).normalized() * 1e-2;
+  // }
 
   converged_ = false;
   GaussNewton<double, 6> solver;

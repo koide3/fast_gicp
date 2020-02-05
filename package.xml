@@ -9,8 +9,6 @@
   <license>GPLv3</license>
 
   <buildtool_depend>catkin</buildtool_depend>
-  <depend>gl_test_field</depend>
-
   <export>
   </export>
 </package>

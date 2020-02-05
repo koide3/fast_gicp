@@ -21,7 +21,7 @@ namespace {
 
     template<typename Tuple>
     __host__ __device__ void operator()(const Tuple& idx_x) const {
-      // threadIdx doesn't work because thrust split for_each process in two
+      // threadIdx doesn't work because thrust split for_each in two loops
       int idx = thrust::get<0>(idx_x);
       const Eigen::Vector3f& x = thrust::get<1>(idx_x);
 

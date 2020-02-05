@@ -10,6 +10,8 @@
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 
+#include <fast_gicp/gicp/gicp_settings.hpp>
+
 namespace fast_gicp {
 
 namespace {
@@ -61,26 +63,33 @@ namespace {
 
   struct covariance_regularization_frobenius {
     __host__ __device__ void operator()(Eigen::Matrix3f& cov) const {
-      // I know double precision floats make gpu slow...
       float lambda = 1e-3;
-      Eigen::Matrix3f C_ = cov + lambda * Eigen::Matrix3f::Identity();
-      Eigen::Matrix3d C = C_.cast<double>();
-      Eigen::Matrix3d C_inv = C.inverse();
-      Eigen::Matrix3d C_norm = (C_inv / C_inv.norm()).inverse();
-      cov = C_norm.cast<float>();
+      Eigen::Matrix3f C = cov + lambda * Eigen::Matrix3f::Identity();
+      Eigen::Matrix3f C_inv = C.inverse();
+      Eigen::Matrix3f C_norm = (C_inv / C_inv.norm()).inverse();
+      cov = C_norm;
     }
   };
 }
 
-static void covariance_estimation(const thrust::device_vector<Eigen::Vector3f>& points, int k, const thrust::device_vector<int>& k_neighbors, thrust::device_vector<Eigen::Matrix3f>& covariances) {
+static void covariance_estimation(const thrust::device_vector<Eigen::Vector3f>& points, int k, const thrust::device_vector<int>& k_neighbors, thrust::device_vector<Eigen::Matrix3f>& covariances, RegularizationMethod method) {
   thrust::device_vector<int> d_indices(points.size());
   thrust::sequence(d_indices.begin(), d_indices.end());
 
   covariances.resize(points.size());
   thrust::for_each(d_indices.begin(), d_indices.end(), covariance_estimation_kernel(points, k, k_neighbors, covariances));
 
-  thrust::for_each(covariances.begin(), covariances.end(), covariance_regularization_svd());
-  // thrust::for_each(covariances.begin(), covariances.end(), covariance_regularization_frobenius());
+  switch(method) {
+    default:
+      std::cerr << "unimplemented covariance regularization method was selected!!" << std::endl;
+      abort();
+    case PLANE:
+      thrust::for_each(covariances.begin(), covariances.end(), covariance_regularization_svd());
+      break;
+    case FROBENIUS:
+      thrust::for_each(covariances.begin(), covariances.end(), covariance_regularization_frobenius());
+      break;
+  }
 }
 }
 

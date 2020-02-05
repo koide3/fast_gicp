@@ -6,6 +6,8 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <fast_gicp/gicp/gicp_settings.hpp>
+
 struct cublasContext;
 
 namespace thrust {
@@ -31,6 +33,11 @@ public:
   ~FastVGICPCudaCore();
 
   void set_resolution(double resolution);
+  void set_max_iterations(int itr);
+  void set_rotation_epsilon(double eps);
+  void set_transformation_epsilon(double eps);
+
+  void swap_source_and_target();
   void set_source_cloud(const std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>>& cloud);
   void set_target_cloud(const std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>>& cloud);
 
@@ -39,8 +46,8 @@ public:
   void find_source_neighbors(int k);
   void find_target_neighbors(int k);
 
-  void calculate_source_covariances();
-  void calculate_target_covariances();
+  void calculate_source_covariances(RegularizationMethod method);
+  void calculate_target_covariances(RegularizationMethod method);
 
   void create_target_voxelmap();
 

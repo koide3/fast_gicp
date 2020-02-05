@@ -45,9 +45,17 @@ public:
 
   void setNumThreads(int n);
 
+  void setRotationEpsilon(double eps);
+
   void setCorrespondenceRandomness(int k);
 
   void setRegularizationMethod(RegularizationMethod method);
+
+  void swapSourceAndTarget();
+
+  void clearSource();
+
+  void clearTarget();
 
   virtual void setInputSource(const PointCloudSourceConstPtr& cloud) override;
 
@@ -73,8 +81,8 @@ public:
 
   RegularizationMethod regularization_method_;
 
-  pcl::search::KdTree<PointSource> source_kdtree;
-  pcl::search::KdTree<PointTarget> target_kdtree;
+  std::unique_ptr<pcl::search::KdTree<PointSource>> source_kdtree;
+  std::unique_ptr<pcl::search::KdTree<PointTarget>> target_kdtree;
 
   std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>> source_covs;
   std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>> target_covs;

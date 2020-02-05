@@ -19,15 +19,49 @@ FastVGICPCudaCore::FastVGICPCudaCore() {
   cublasCreate(&cublas_handle);
 
   resolution = 1.0;
-
   max_iterations = 64;
   rotation_epsilon = 2e-3;
   transformation_epsilon = 5e-4;
 }
-FastVGICPCudaCore ::~FastVGICPCudaCore() {}
+FastVGICPCudaCore ::~FastVGICPCudaCore() {
+  cublasDestroy(cublas_handle);
+}
 
 void FastVGICPCudaCore::set_resolution(double resolution) {
   this->resolution = resolution;
+}
+
+void FastVGICPCudaCore::set_max_iterations(int itr) {
+  this->max_iterations = itr;
+}
+
+void FastVGICPCudaCore::set_rotation_epsilon(double eps) {
+  this->rotation_epsilon = eps;
+}
+
+void FastVGICPCudaCore::set_transformation_epsilon(double eps) {
+  this->transformation_epsilon = eps;
+}
+
+void FastVGICPCudaCore::swap_source_and_target() {
+  if(source_points && target_points) {
+    source_points.swap(target_points);
+  }
+  if(source_neighbors && target_neighbors) {
+    source_neighbors.swap(target_neighbors);
+  }
+  if(source_covariances && target_covariances) {
+    source_covariances.swap(target_covariances);
+  }
+
+  if(!target_points || !target_covariances) {
+    return;
+  }
+
+  if(!voxelmap) {
+    voxelmap.reset(new GaussianVoxelMap(resolution));
+  }
+  voxelmap->create_voxelmap(*target_points, *target_covariances);
 }
 
 void FastVGICPCudaCore::set_source_cloud(const std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>>& cloud) {
@@ -92,32 +126,34 @@ void FastVGICPCudaCore::find_target_neighbors(int k) {
   thrust::transform(k_neighbors.begin(), k_neighbors.end(), target_neighbors->begin(), untie_pair_second());
 }
 
-void FastVGICPCudaCore::calculate_source_covariances() {
+void FastVGICPCudaCore::calculate_source_covariances(RegularizationMethod method) {
   assert(source_points && source_neighbors);
   int k = source_neighbors->size() / source_points->size();
 
   if(!source_covariances) {
     source_covariances.reset(new thrust::device_vector<Eigen::Matrix3f>(source_points->size()));
   }
-  covariance_estimation(*source_points, k, *source_neighbors, *source_covariances);
+  covariance_estimation(*source_points, k, *source_neighbors, *source_covariances, method);
 }
 
-void FastVGICPCudaCore::calculate_target_covariances() {
+void FastVGICPCudaCore::calculate_target_covariances(RegularizationMethod method) {
   assert(source_points && source_neighbors);
   int k = target_neighbors->size() / target_points->size();
 
   if(!target_covariances) {
     target_covariances.reset(new thrust::device_vector<Eigen::Matrix3f>(target_points->size()));
   }
-  covariance_estimation(*target_points, k, *target_neighbors, *target_covariances);
+  covariance_estimation(*target_points, k, *target_neighbors, *target_covariances, method);
 }
 
 void FastVGICPCudaCore::create_target_voxelmap() {
   assert(target_points && target_covariances);
-  voxelmap.reset(new GaussianVoxelMap(resolution));
+  if(!voxelmap) {
+    voxelmap.reset(new GaussianVoxelMap(resolution));
+  }
   voxelmap->create_voxelmap(*target_points, *target_covariances);
 
-  cudaDeviceSynchronize();
+  // cudaDeviceSynchronize();
 }
 
 bool FastVGICPCudaCore::is_converged(const Eigen::Matrix<float, 6, 1>& delta) const {
@@ -142,8 +178,8 @@ bool FastVGICPCudaCore::optimize(const Eigen::Isometry3f& initial_guess, Eigen::
   x0.head<3>() = Sophus::SO3f(initial_guess.linear()).log();
   x0.tail<3>() = initial_guess.translation();
 
-  if(x0.head<3>().norm() < 1e-1) {
-    x0.head<3>() = (Eigen::Vector3f::Random()).normalized() * 1e-1;
+  if(x0.head<3>().norm() < 1e-2) {
+    x0.head<3>() = (Eigen::Vector3f::Random()).normalized() * 1e-2;
   }
 
   thrust::device_vector<Eigen::Vector3f> losses;                            // 3N error vector

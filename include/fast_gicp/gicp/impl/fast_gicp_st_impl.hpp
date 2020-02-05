@@ -20,10 +20,18 @@ FastGICPSingleThread<PointSource, PointTarget>::FastGICPSingleThread() {
   // corr_dist_threshold_ = 1.0;
   regularization_method_ = PLANE;
   corr_dist_threshold_ = std::numeric_limits<float>::max();
+
+  source_kdtree.reset(new pcl::search::KdTree<PointSource>);
+  target_kdtree.reset(new pcl::search::KdTree<PointTarget>);
 }
 
 template<typename PointSource, typename PointTarget>
 FastGICPSingleThread<PointSource, PointTarget>::~FastGICPSingleThread() {}
+
+template<typename PointSource, typename PointTarget>
+void FastGICPSingleThread<PointSource, PointTarget>::setRotationEpsilon(double eps) {
+  rotation_epsilon_ = eps;
+}
 
 template<typename PointSource, typename PointTarget>
 void FastGICPSingleThread<PointSource, PointTarget>::setCorrespondenceRandomness(int k) {
@@ -36,15 +44,43 @@ void FastGICPSingleThread<PointSource, PointTarget>::setRegularizationMethod(Reg
 }
 
 template<typename PointSource, typename PointTarget>
+void FastGICPSingleThread<PointSource, PointTarget>::swapSourceAndTarget() {
+  input_.swap(target_);
+  source_kdtree.swap(target_kdtree);
+  source_covs.swap(target_covs);
+
+  correspondences.clear();
+  sq_distances.clear();
+}
+
+template<typename PointSource, typename PointTarget>
+void FastGICPSingleThread<PointSource, PointTarget>::clearSource() {
+  input_.reset();
+}
+
+template<typename PointSource, typename PointTarget>
+void FastGICPSingleThread<PointSource, PointTarget>::clearTarget() {
+  target_.reset();
+}
+
+template<typename PointSource, typename PointTarget>
 void FastGICPSingleThread<PointSource, PointTarget>::setInputSource(const PointCloudSourceConstPtr& cloud) {
+  if(input_ == cloud) {
+    return;
+  }
+
   pcl::Registration<PointSource, PointTarget, Scalar>::setInputSource(cloud);
-  calculate_covariances(cloud, source_kdtree, source_covs);
+  calculate_covariances(cloud, *source_kdtree, source_covs);
 }
 
 template<typename PointSource, typename PointTarget>
 void FastGICPSingleThread<PointSource, PointTarget>::setInputTarget(const PointCloudTargetConstPtr& cloud) {
+  if(target_ == cloud) {
+    return;
+  }
+
   pcl::Registration<PointSource, PointTarget, Scalar>::setInputTarget(cloud);
-  calculate_covariances(cloud, target_kdtree, target_covs);
+  calculate_covariances(cloud, *target_kdtree, target_covs);
 }
 
 template<typename PointSource, typename PointTarget>
@@ -55,8 +91,8 @@ void FastGICPSingleThread<PointSource, PointTarget>::computeTransformation(Point
   x0.head<3>() = Sophus::SO3f(guess.template block<3, 3>(0, 0)).log();
   x0.tail<3>() = guess.template block<3, 1>(0, 3);
 
-  if(x0.head<3>().norm() < 1e-1) {
-    x0.head<3>() = (Eigen::Vector3f::Random()).normalized() * 1e-1;
+  if(x0.head<3>().norm() < 1e-2) {
+    x0.head<3>() = (Eigen::Vector3f::Random()).normalized() * 1e-2;
   }
 
   converged_ = false;
@@ -129,7 +165,7 @@ void FastGICPSingleThread<PointSource, PointTarget>::update_correspondences(cons
       }
     }
 
-    target_kdtree.nearestKSearch(pt, 2, k_indices, k_sq_dists);
+    target_kdtree->nearestKSearch(pt, 2, k_indices, k_sq_dists);
 
     correspondences[i] = k_indices[0];
     sq_distances[i] = k_sq_dists[0];

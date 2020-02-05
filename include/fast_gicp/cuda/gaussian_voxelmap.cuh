@@ -101,9 +101,13 @@ namespace {
 
       create_hashtable(voxel_coords);
 
-      num_points.resize(num_voxels, 0);
-      voxel_means.resize(num_voxels, Eigen::Vector3f::Zero());
-      voxel_covs.resize(num_voxels, Eigen::Matrix3f::Zero());
+      num_points.resize(num_voxels);
+      voxel_means.resize(num_voxels);
+      voxel_covs.resize(num_voxels);
+
+      thrust::fill(num_points.begin(), num_points.end(), 0);
+      thrust::fill(voxel_means.begin(), voxel_means.end(), Eigen::Vector3f::Zero().eval());
+      thrust::fill(voxel_covs.begin(), voxel_covs.end(), Eigen::Matrix3f::Zero().eval());
 
       thrust::for_each(
         thrust::make_zip_iterator(thrust::make_tuple(voxel_coords.begin(), points.begin(), covariances.begin())),
@@ -186,7 +190,7 @@ namespace {
       int new_num_buckets = buckets.size() * 2 - 1;
       thrust::host_vector<thrust::pair<Eigen::Vector3i, int>> new_buckets(new_num_buckets);
       thrust::fill(new_buckets.begin(), new_buckets.end(), thrust::make_pair(Eigen::Vector3i(0, 0, 0), -1));
-      std::cout << "rehash:" << new_buckets.size() << std::endl;
+      // std::cout << "rehash:" << new_buckets.size() << std::endl;
 
       for(int i = 0; i < buckets.size(); i++) {
         if(buckets[i].second < 0) {

@@ -51,11 +51,21 @@ public:
   FastVGICPCuda();
   virtual ~FastVGICPCuda() override;
 
+  void setRotationEpsilon(double eps);
+
   void setResolution(double resolution);
 
   void setCorrespondenceRandomness(int k);
 
   void setRegularizationMethod(RegularizationMethod method);
+
+  void setNearesetNeighborSearchMethod(NearestNeighborMethod method);
+
+  void swapSourceAndTarget();
+
+  void clearSource();
+
+  void clearTarget();
 
   virtual void setInputSource(const PointCloudSourceConstPtr& cloud) override;
 

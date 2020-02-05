@@ -5,7 +5,7 @@ add_definitions(-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2)
 set(CMAKE_C_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
 set(CMAKE_CXX_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
 
-# set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_BUILD_TYPE "Release")
 
 find_package(catkin REQUIRED COMPONENTS gl_test_field)
 
@@ -65,17 +65,10 @@ target_link_libraries(gicp_align
   fast_gicp
 )
 
-add_executable(fast_test src/fast_test.cpp)
-target_link_libraries(fast_test
-  ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES}
-  fast_gicp
-)
-
 
 if(CUDA_FOUND)
-  # --expt-relaxed-constexpr
   set(CUDA_NVCC_FLAGS "--expt-relaxed-constexpr")
+  add_definitions(-DUSE_VGICP_CUDA)
 
   cuda_add_library(fast_vgicp_cuda
     src/fast_gicp/cuda/fast_vgicp_cuda.cu
@@ -90,6 +83,7 @@ if(CUDA_FOUND)
     cublas
   )
 
+  # add vgicp_cuda to libfast_gicp
   target_sources(fast_gicp PRIVATE
     src/fast_gicp/gicp/fast_vgicp_cuda.cpp
   )
@@ -97,13 +91,4 @@ if(CUDA_FOUND)
     fast_vgicp_cuda
   )
   add_dependencies(fast_gicp fast_vgicp_cuda)
-
-
-  add_executable(cuda_joint_test src/cuda_joint_test.cpp)
-  target_link_libraries(cuda_joint_test
-    ${catkin_LIBRARIES}
-    ${PCL_LIBRARIES}
-    fast_gicp
-    fast_vgicp_cuda
-  )
 endif()

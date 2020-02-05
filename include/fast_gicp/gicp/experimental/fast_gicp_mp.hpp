@@ -42,6 +42,8 @@ public:
 
   void setNumThreads(int n);
 
+  void setRotationEpsilon(double eps);
+
   void setCorrespondenceRandomness(int k);
 
   void setRegularizationMethod(RegularizationMethod method);

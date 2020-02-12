@@ -39,6 +39,7 @@ single:47.8433[msec] 100times:3235.27[msec] 100times_reuse:1582.99[msec]
 
 ## Related packages
 - [ndt_omp](https://github.com/koide3/ndt_omp)
+- [fast_gicp](https://github.com/SMRT-AIST/fast_gicp)
 
 
 ## Papers

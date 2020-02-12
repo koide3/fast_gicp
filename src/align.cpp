@@ -17,6 +17,7 @@
 #include <fast_gicp/gicp/fast_vgicp_cuda.hpp>
 #endif
 
+// benchmark for PCL's registration methods
 template<typename Registration>
 void test_pcl(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& target, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& source) {
   pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>);
@@ -30,7 +31,7 @@ void test_pcl(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr&
   double single = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
   std::cout << "single:" << single << "[msec] " << std::flush;
 
-  // 100 times run
+  // 100 times
   t1 = std::chrono::high_resolution_clock::now();
   for(int i = 0; i < 100; i++) {
     reg.setInputTarget(target);
@@ -39,10 +40,10 @@ void test_pcl(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr&
   }
   t2 = std::chrono::high_resolution_clock::now();
   double multi = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
-  std::cout << "100times:" << multi << "[msec] " << std::endl;
+  std::cout << "100times:" << multi << "[msec] fitness_score:" << reg.getFitnessScore() << std::endl;
 }
 
-
+// benchmark for fast_gicp registration methods
 template<typename Registration>
 void test(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& target, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& source) {
   pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>);
@@ -60,7 +61,7 @@ void test(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& tar
   double single = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
   std::cout << "single:" << single << "[msec] " << std::flush;
 
-  // 100 times run
+  // 100 times
   t1 = std::chrono::high_resolution_clock::now();
   for(int i = 0; i < 100; i++) {
     reg.clearTarget();
@@ -91,10 +92,12 @@ void test(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& tar
   t2 = std::chrono::high_resolution_clock::now();
   double reuse = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
 
-  std::cout << "100times_reuse:" << reuse << "[msec]" << std::endl;
+  std::cout << "100times_reuse:" << reuse << "[msec] fitness_score:" << reg.getFitnessScore() << std::endl;
 }
 
-
+/**
+ * @brief main
+ */
 int main(int argc, char** argv) {
   if(argc < 3) {
     std::cout << "usage: gicp_align target_pcd source_pcd" << std::endl;
@@ -168,7 +171,7 @@ int main(int argc, char** argv) {
   test(vgicp_cuda, target_cloud, source_cloud);
 
   std::cout << "--- vgicp_cuda (gpu_bruteforce) ---" << std::endl;
-  // use GPU-based bruteforce for nearest neighbor search in covariance estimation
+  // use GPU-based bruteforce nearest neighbor search for covariance estimation
   // this would be a good choice if your PC has a weak CPU and a strong GPU (e.g., NVIDIA Jetson)
   vgicp_cuda.setNearesetNeighborSearchMethod(fast_gicp::GPU_BRUTEFORCE);
   test(vgicp_cuda, target_cloud, source_cloud);

@@ -164,6 +164,7 @@ void FastVGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource
   x0.head<3>() = Sophus::SO3f(guess.template block<3, 3>(0, 0)).log();
   x0.tail<3>() = guess.template block<3, 1>(0, 3);
 
+  // prevent stacking at zero
   if(x0.head<3>().norm() < 1e-2) {
     x0.head<3>() = (Eigen::Vector3f::Random()).normalized() * 1e-2;
   }

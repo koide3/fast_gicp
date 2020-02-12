@@ -44,7 +44,7 @@ single:47.8433[msec] 100times:3235.27[msec] 100times_reuse:1582.99[msec]
 
 ## Papers
 If you use this package, please cite the following paper:  
-Kenji Koide, Masashi Yokozuka, Shuji Oishi, and Atsuhiko Banno, Voxelized GICP for fast and accurate 3D point cloud registration, 16th Intelligent Autonomous Systems Conference (IAS16). 
+- Kenji Koide, Masashi Yokozuka, Shuji Oishi, and Atsuhiko Banno, Voxelized GICP for fast and accurate 3D point cloud registration, 16th Intelligent Autonomous Systems Conference (IAS16). 
 
 ## Contact
 Kenji Koide, k.koide@aist.go.jp

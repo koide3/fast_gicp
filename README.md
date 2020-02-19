@@ -37,6 +37,8 @@ single:16.3572[msec] 100times:1585.69[msec] 100times_reuse:783.953[msec]
 single:47.8433[msec] 100times:3235.27[msec] 100times_reuse:1582.99[msec]
 ```
 
+See [src/align.cpp](https://github.com/SMRT-AIST/fast_gicp/blob/master/src/align.cpp) for the detailed usage.
+
 ## Related packages
 - [ndt_omp](https://github.com/koide3/ndt_omp)
 - [fast_gicp](https://github.com/SMRT-AIST/fast_gicp)

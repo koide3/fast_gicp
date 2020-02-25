@@ -110,6 +110,8 @@ void FastVGICPCudaCore::find_source_neighbors(int k) {
 
   if(!source_neighbors) {
     source_neighbors.reset(new thrust::device_vector<int>(k_neighbors.size()));
+  } else {
+    source_neighbors->resize(k_neighbors.size());
   }
   thrust::transform(k_neighbors.begin(), k_neighbors.end(), source_neighbors->begin(), untie_pair_second());
 }
@@ -122,6 +124,8 @@ void FastVGICPCudaCore::find_target_neighbors(int k) {
 
   if(!target_neighbors) {
     target_neighbors.reset(new thrust::device_vector<int>(k_neighbors.size()));
+  } else {
+    target_neighbors->resize(k_neighbors.size());
   }
   thrust::transform(k_neighbors.begin(), k_neighbors.end(), target_neighbors->begin(), untie_pair_second());
 }

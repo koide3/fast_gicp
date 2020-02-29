@@ -19,6 +19,8 @@ This package is a collection of GICP-based fast point cloud registration algorit
 - OpenMP (optional)
 - CUDA (optional)
 
+We have tested this package with Ubuntu 18.04, ROS melodic, and CUDA 10.2.
+
 ### ROS
 ```bash
 cd ~/catkin_ws/src

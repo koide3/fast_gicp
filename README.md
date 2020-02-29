@@ -1,6 +1,6 @@
 # fast_gicp
 
-This package is a collection of GICP-based fast point cloud registration algorithms. It constains a multi-threaded GICP as well as multi-thread and GPU implementations of our voxelized GICP (VGICP) algorithm. All the implemented algorithms have the PCL registration interface so that it can be used as an inplace replacement for GICP in PCL.
+This package is a collection of GICP-based fast point cloud registration algorithms. It constains a multi-threaded GICP as well as multi-thread and GPU implementations of our voxelized GICP (VGICP) algorithm. All the implemented algorithms have the PCL registration interface so that they can be used as an inplace replacement for GICP in PCL.
 
 - FastGICP: multi-threaded GICP algorithm (**\~40FPS**)
 - FastGICPSingleThread: GICP algorithm optimized for single-threading (**\~15FPS**)
@@ -8,6 +8,32 @@ This package is a collection of GICP-based fast point cloud registration algorit
 - FastVGICPCuda: CUDA-optimized voxelized GICP algorithm (**\~120FPS**)
 ![proctime](data/proctime.png)
 
+
+## Installation
+
+### Dependencies
+- PCL
+- Eigen
+- [Sophus](https://github.com/strasdat/Sophus)
+- [nvbio](https://github.com/NVlabs/nvbio)
+- OpenMP (optional)
+- CUDA (optional)
+
+### ROS
+```bash
+cd ~/catkin_ws/src
+git clone https://github.com/SMRT-AIST/fast_gicp --recursive
+cd .. && catkin_make -DCMAKE_BUILD_TYPE=Release
+```
+
+### Non-ROS
+```bash
+git clone https://github.com/SMRT-AIST/fast_gicp --recursive
+cd fast_gicp && git checkout non_ros
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j8
+```
 
 ## Benchmark
 CPU:Core i9-9900K GPU:GeForce RTX2080Ti

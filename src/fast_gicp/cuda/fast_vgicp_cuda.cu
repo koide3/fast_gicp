@@ -141,7 +141,7 @@ void FastVGICPCudaCore::calculate_source_covariances(RegularizationMethod method
 }
 
 void FastVGICPCudaCore::calculate_target_covariances(RegularizationMethod method) {
-  assert(source_points && source_neighbors);
+  assert(target_points && target_neighbors);
   int k = target_neighbors->size() / target_points->size();
 
   if(!target_covariances) {

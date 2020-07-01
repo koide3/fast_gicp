@@ -67,6 +67,15 @@ single:47.8433[msec] 100times:3235.27[msec] 100times_reuse:1582.99[msec]
 
 See [src/align.cpp](https://github.com/SMRT-AIST/fast_gicp/blob/master/src/align.cpp) for the detailed usage.
 
+## Test on KITTI
+
+```bash
+# Perform frame-by-frame registration
+rosrun fast_gicp gicp_kitti /your/kitti/path/sequences/00/velodyne
+```
+
+![kitti00](https://user-images.githubusercontent.com/31344317/86207074-b98ac280-bba8-11ea-9687-e65f03aaf25b.png)
+
 ## Related packages
 - [ndt_omp](https://github.com/koide3/ndt_omp)
 - [fast_gicp](https://github.com/SMRT-AIST/fast_gicp)

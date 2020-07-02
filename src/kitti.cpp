@@ -78,13 +78,15 @@ int main(int argc, char** argv) {
 
   KittiLoader kitti(argv[1]);
 
+  // use downsample_resolution=1.0 for fast registration
   double downsample_resolution = 0.25;
   pcl::ApproximateVoxelGrid<pcl::PointXYZ> voxelgrid;
   voxelgrid.setLeafSize(downsample_resolution, downsample_resolution, downsample_resolution);
 
   // registration method
-  fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ> gicp;
-  // fast_gicp::FastVGICP<pcl::PointXYZ, pcl::PointXYZ> gicp;
+  // you should fine-tune hyper-parameters (e.g., voxel resolution, max correspondence distance) for the best result
+  // fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ> gicp;
+  fast_gicp::FastVGICP<pcl::PointXYZ, pcl::PointXYZ> gicp;
   // fast_gicp::FastVGICPCuda<pcl::PointXYZ, pcl::PointXYZ> gicp;
   gicp.setMaxCorrespondenceDistance(1.0);
 

@@ -127,8 +127,18 @@ void FastGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource&
 
     Eigen::Matrix<float, 6, 1> delta = solver.delta(loss.cast<double>(), J.cast<double>()).cast<float>();
 
-    x0.head<3>() = (Sophus::SO3f::exp(-delta.head<3>()) * Sophus::SO3f::exp(x0.head<3>())).log();
-    x0.tail<3>() -= delta.tail<3>();
+    Eigen::Isometry3f x0_ = Eigen::Isometry3f::Identity();
+    x0_.linear() = Sophus::SO3f::exp(x0.head<3>()).matrix();
+    x0_.translation() = x0.tail<3>();
+
+    Eigen::Isometry3f delta_ = Eigen::Isometry3f::Identity();
+    delta_.linear() = Sophus::SO3f::exp(delta.head<3>()).matrix();
+    delta_.translation() = delta.tail<3>();
+
+    Eigen::Isometry3f x1_ = delta_.inverse() * x0_;
+
+    x0.head<3>() = Sophus::SO3f(x1_.linear()).log();
+    x0.tail<3>() = x1_.translation();
 
     if(is_converged(delta)) {
       converged_ = true;

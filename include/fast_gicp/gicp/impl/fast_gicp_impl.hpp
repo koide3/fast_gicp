@@ -136,6 +136,7 @@ void FastGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource&
     delta_.translation() = delta.tail<3>();
 
     Eigen::Isometry3f x1_ = delta_.inverse() * x0_;
+    x1_.linear() = Eigen::Quaternionf(x1_.linear()).normalized().toRotationMatrix();
 
     x0.head<3>() = Sophus::SO3f(x1_.linear()).log();
     x0.tail<3>() = x1_.translation();

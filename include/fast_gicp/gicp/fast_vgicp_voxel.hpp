@@ -1,6 +1,8 @@
 #ifndef FAST_GICP_FAST_VGICP_VOXEL_HPP
 #define FAST_GICP_FAST_VGICP_VOXEL_HPP
 
+#include <boost/functional/hash.hpp>
+
 namespace fast_gicp {
 
 class Vector3iHash {

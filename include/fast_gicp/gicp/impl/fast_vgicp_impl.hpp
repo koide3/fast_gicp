@@ -161,7 +161,8 @@ void FastVGICP<PointSource, PointTarget>::create_voxelmap(const PointCloudTarget
 template<typename PointSource, typename PointTarget>
 void FastVGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
   Eigen::Matrix<float, 6, 1> x0;
-  x0.head<3>() = Sophus::SO3f(guess.template block<3, 3>(0, 0)).log();
+  Eigen::Quaterniond init_quat = Eigen::Quaternionf(guess.template block<3, 3>(0, 0)).cast<double>();
+  x0.head<3>() = Sophus::SO3f(init_quat.normalized().toRotationMatrix().cast<float>()).log();
   x0.tail<3>() = guess.template block<3, 1>(0, 3);
 
   // prevent stacking at zero
@@ -189,6 +190,7 @@ void FastVGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource
     delta_.translation() = delta.tail<3>();
 
     Eigen::Isometry3f x1_ = delta_.inverse() * x0_;
+    x1_.linear() = Eigen::Quaternionf(x1_.linear()).cast<double>().normalized().toRotationMatrix().cast<float>();
 
     x0.head<3>() = Sophus::SO3f(x1_.linear()).log();
     x0.tail<3>() = x1_.translation();

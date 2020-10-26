@@ -8,6 +8,7 @@ This package is a collection of GICP-based fast point cloud registration algorit
 - FastVGICPCuda: CUDA-optimized voxelized GICP algorithm (**\~120FPS**)
 ![proctime](data/proctime.png)
 
+[![Build Status](https://travis-ci.org/SMRT-AIST/fast_gicp.svg?branch=master)](https://travis-ci.org/SMRT-AIST/fast_gicp)
 
 ## Installation
 
@@ -20,6 +21,10 @@ This package is a collection of GICP-based fast point cloud registration algorit
 - CUDA (optional)
 
 We have tested this package with Ubuntu 18.04, ROS melodic, and CUDA 10.2.
+
+### CUDA
+
+To enable CUDA-based features, uncomment ```find_package(CUDA)``` in ```CMakeLists.txt```.
 
 ### ROS
 ```bash

@@ -88,7 +88,7 @@ rosrun fast_gicp gicp_kitti /your/kitti/path/sequences/00/velodyne
 
 ## Papers
 If you use this package, please cite the following paper:  
-- Kenji Koide, Masashi Yokozuka, Shuji Oishi, and Atsuhiko Banno, Voxelized GICP for fast and accurate 3D point cloud registration, 16th Intelligent Autonomous Systems Conference (IAS16) (under review). [[link]](https://easychair.org/publications/preprint/ftvV)
+- Kenji Koide, Masashi Yokozuka, Shuji Oishi, and Atsuhiko Banno, Voxelized GICP for fast and accurate 3D point cloud registration, 16th Intelligent Autonomous Systems Conference. [[link]](https://easychair.org/publications/preprint/ftvV)
 
 ## Contact
 Kenji Koide, k.koide@aist.go.jp

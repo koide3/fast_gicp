@@ -224,7 +224,7 @@ void FastGICP<PointSource, PointTarget>::update_mahalanobis(const Eigen::Isometr
   Eigen::Matrix4d trans_matrix = trans.matrix();
   mahalanobis.resize(input_->size());
 
-  #pragma omp parallel for
+#pragma omp parallel for num_threads(num_threads_)
   for(int i = 0; i < input_->size(); i++) {
     int target_index = correspondences[i];
     if(target_index < 0) {
@@ -251,7 +251,7 @@ double FastGICP<PointSource, PointTarget>::compute_error(const Eigen::Isometry3d
     bs[i].setZero();
   }
 
-#pragma omp parallel for num_threads(num_threads_) reduction(+:sum_errors)
+#pragma omp parallel for num_threads(num_threads_) reduction(+ : sum_errors)
   for(int i = 0; i < input_->size(); i++) {
     int target_index = correspondences[i];
     if(target_index < 0) {

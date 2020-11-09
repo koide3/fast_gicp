@@ -29,7 +29,7 @@ public:
   using PointCloudTargetPtr = typename PointCloudTarget::Ptr;
   using PointCloudTargetConstPtr = typename PointCloudTarget::ConstPtr;
 
-  using pcl::Registration<PointSource, PointTarget, Scalar>::reg_name_;
+using pcl::Registration<PointSource, PointTarget, Scalar>::reg_name_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::input_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::target_;
 
@@ -51,6 +51,13 @@ public:
 
   void setRegularizationMethod(RegularizationMethod method);
 
+  // ```tau``` in LM optimization
+  // use a small value (e.g., 1e-9) when the initial guess is expected to be accurate (e.g., odometry estimation)
+  // use a large value (e.g., 1e-4) when the initial guess would be inaccurate
+  void setInitialLambdaFactor(double init_lambda_factor);
+
+  void setMaxInnerIterations(int max_iterations);
+
   void swapSourceAndTarget();
 
   void clearSource();
@@ -65,27 +72,37 @@ protected:
   virtual void computeTransformation(PointCloudSource& output, const Matrix4& guess) override;
 
 private:
-  bool is_converged(const Eigen::Matrix<float, 6, 1>& delta) const;
+  bool is_converged(const Eigen::Isometry3d& delta) const;
 
-  void update_correspondences(const Eigen::Matrix<float, 6, 1>& x);
+  void update_correspondences(const Eigen::Isometry3d& trans);
 
-  Eigen::VectorXf loss_ls(const Eigen::Matrix<float, 6, 1>& x, Eigen::MatrixXf* J) const;
+  void update_mahalanobis(const Eigen::Isometry3d& trans);
+
+  double compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H = nullptr, Eigen::Matrix<double, 6, 1>* b = nullptr) const;
+
+  bool lm_step(Eigen::Isometry3d& x0, Eigen::Isometry3d& delta);
 
   template<typename PointT>
-  bool calculate_covariances(const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>>& covariances);
+  bool calculate_covariances(const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances);
 
 public:
   int num_threads_;
   int k_correspondences_;
   double rotation_epsilon_;
 
+  int lm_max_iterations_;
+  double lm_init_lambda_factor_;
+  double lm_lambda_;
+
   RegularizationMethod regularization_method_;
 
   std::unique_ptr<pcl::search::KdTree<PointSource>> source_kdtree;
   std::unique_ptr<pcl::search::KdTree<PointTarget>> target_kdtree;
 
-  std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>> source_covs;
-  std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>> target_covs;
+  std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> source_covs;
+  std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> target_covs;
+
+  std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> mahalanobis;
 
   std::vector<int> correspondences;
   std::vector<float> sq_distances;

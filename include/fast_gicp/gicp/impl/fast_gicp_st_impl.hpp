@@ -17,8 +17,9 @@ FastGICPSingleThread<PointSource, PointTarget>::FastGICPSingleThread() {
   transformation_epsilon_ = 5e-4;
   rotation_epsilon_ = 2e-3;
   transformation_epsilon_ = 5e-4;
-  // corr_dist_threshold_ = 1.0;
   regularization_method_ = PLANE;
+
+  // corr_dist_threshold_ = 1.0;
   corr_dist_threshold_ = std::numeric_limits<float>::max();
 
   source_kdtree.reset(new pcl::search::KdTree<PointSource>);

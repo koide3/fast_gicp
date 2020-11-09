@@ -5,7 +5,6 @@
 
 #include <fast_gicp/so3/so3.hpp>
 #include <fast_gicp/opt/gauss_newton.hpp>
-#include <fast_gicp/gicp/fast_gicp_st.hpp>
 
 namespace fast_gicp {
 

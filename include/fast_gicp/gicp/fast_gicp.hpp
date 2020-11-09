@@ -85,7 +85,7 @@ private:
   template<typename PointT>
   bool calculate_covariances(const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances);
 
-public:
+private:
   int num_threads_;
   int k_correspondences_;
   double rotation_epsilon_;

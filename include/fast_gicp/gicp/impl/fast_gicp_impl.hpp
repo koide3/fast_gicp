@@ -1,17 +1,9 @@
 #ifndef FAST_GICP_FAST_GICP_IMPL_HPP
 #define FAST_GICP_FAST_GICP_IMPL_HPP
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-
-#include <pcl/point_types.h>
-#include <pcl/point_cloud.h>
-#include <pcl/search/kdtree.h>
-#include <pcl/registration/registration.h>
-
 #include <sophus/so3.hpp>
+
 #include <fast_gicp/so3/so3.hpp>
-#include <fast_gicp/gicp/fast_gicp.hpp>
 #include <fast_gicp/opt/gauss_newton.hpp>
 
 namespace fast_gicp {

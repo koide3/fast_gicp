@@ -22,6 +22,10 @@ This package is a collection of GICP-based fast point cloud registration algorit
 
 We have tested this package with Ubuntu 18.04, ROS melodic, and CUDA 10.2.
 
+### CUDA
+
+To enable CUDA-based features, uncomment ```find_package(CUDA)``` in ```CMakeLists.txt```.
+
 ### ROS
 ```bash
 cd ~/catkin_ws/src
@@ -83,8 +87,13 @@ rosrun fast_gicp gicp_kitti /your/kitti/path/sequences/00/velodyne
 
 
 ## Papers
+<<<<<<< HEAD
 If you use this package, please cite the following paper:
 - Kenji Koide, Masashi Yokozuka, Shuji Oishi, and Atsuhiko Banno, Voxelized GICP for fast and accurate 3D point cloud registration, 16th Intelligent Autonomous Systems Conference (IAS16) (under review). [[link]](https://easychair.org/publications/preprint/ftvV)
+=======
+If you use this package, please cite the following paper:  
+- Kenji Koide, Masashi Yokozuka, Shuji Oishi, and Atsuhiko Banno, Voxelized GICP for fast and accurate 3D point cloud registration [[link]](https://easychair.org/publications/preprint/ftvV)
+>>>>>>> ff50fd65b79fa49351e2b44ebd5f9d6a337a7090
 
 ## Contact
 Kenji Koide, k.koide@aist.go.jp

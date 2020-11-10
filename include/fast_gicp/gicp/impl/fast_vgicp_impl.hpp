@@ -135,7 +135,7 @@ Eigen::Vector3i FastVGICP<PointSource, PointTarget>::voxel_coord(const Eigen::Ve
 
 template<typename PointSource, typename PointTarget>
 Eigen::Vector4d FastVGICP<PointSource, PointTarget>::voxel_origin(const Eigen::Vector3i& coord) const {
-  Eigen::Vector3d origin = (coord.cast<double>().array() + 0.5) * voxel_resolution_;
+  Eigen::Vector3d origin = (coord.template cast<double>().array() + 0.5) * voxel_resolution_;
   return Eigen::Vector4d(origin[0], origin[1], origin[2], 1.0f);
 }
 
@@ -147,43 +147,6 @@ GaussianVoxel::Ptr FastVGICP<PointSource, PointTarget>::lookup_voxel(const Eigen
   }
 
   return found->second;
-}
-
-template<typename PointSource, typename PointTarget>
-void FastVGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
-  Eigen::Isometry3d x0 = Eigen::Isometry3d(guess.template cast<double>());
-
-  this->lm_lambda_ = -1.0;
-  this->converged_ = false;
-
-  std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>> voxel_means;
-  for(const auto& voxel : voxels) {
-    voxel_means.push_back(voxel.second->mean.cast<float>().head<3>());
-  }
-
-  for(int i = 0; i < this->max_iterations_ && !this->converged_; i++) {
-    this->nr_iterations_ = i;
-
-    update_correspondences(x0);
-    update_mahalanobis(x0);
-
-    std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>> corrs;
-    for(const auto& corr: voxel_correspondences) {
-      corrs.push_back(x0.cast<float>() * input_->at(corr.first).getVector3fMap());
-      corrs.push_back(corr.second->mean.head<3>().cast<float>());
-    }
-
-    Eigen::Isometry3d delta;
-    if(!this->lm_step(x0, delta)) {
-      std::cerr << "lm not converged!!" << std::endl;
-      break;
-    }
-
-    this->converged_ = this->is_converged(delta);
-  }
-
-  this->final_transformation_ = x0.cast<float>().matrix();
-  pcl::transformPointCloud(*input_, output, this->final_transformation_);
 }
 
 template<typename PointSource, typename PointTarget>

@@ -29,7 +29,8 @@ public:
   using PointCloudTargetPtr = typename PointCloudTarget::Ptr;
   using PointCloudTargetConstPtr = typename PointCloudTarget::ConstPtr;
 
-using pcl::Registration<PointSource, PointTarget, Scalar>::reg_name_;
+protected:
+  using pcl::Registration<PointSource, PointTarget, Scalar>::reg_name_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::input_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::target_;
 
@@ -40,6 +41,7 @@ using pcl::Registration<PointSource, PointTarget, Scalar>::reg_name_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::converged_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::corr_dist_threshold_;
 
+public:
   FastGICP();
   virtual ~FastGICP() override;
 
@@ -58,11 +60,13 @@ using pcl::Registration<PointSource, PointTarget, Scalar>::reg_name_;
 
   void setMaxInnerIterations(int max_iterations);
 
-  void swapSourceAndTarget();
+  void setDebugPrint(bool lm_debug_print);
 
-  void clearSource();
+  virtual void swapSourceAndTarget();
 
-  void clearTarget();
+  virtual void clearSource();
+
+  virtual void clearTarget();
 
   virtual void setInputSource(const PointCloudSourceConstPtr& cloud) override;
 
@@ -71,21 +75,20 @@ using pcl::Registration<PointSource, PointTarget, Scalar>::reg_name_;
 protected:
   virtual void computeTransformation(PointCloudSource& output, const Matrix4& guess) override;
 
-private:
   bool is_converged(const Eigen::Isometry3d& delta) const;
 
-  void update_correspondences(const Eigen::Isometry3d& trans);
+  virtual void update_correspondences(const Eigen::Isometry3d& trans);
 
-  void update_mahalanobis(const Eigen::Isometry3d& trans);
+  virtual void update_mahalanobis(const Eigen::Isometry3d& trans);
 
-  double compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H = nullptr, Eigen::Matrix<double, 6, 1>* b = nullptr) const;
+  virtual double compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H = nullptr, Eigen::Matrix<double, 6, 1>* b = nullptr) const;
 
   bool lm_step(Eigen::Isometry3d& x0, Eigen::Isometry3d& delta);
 
   template<typename PointT>
   bool calculate_covariances(const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances);
 
-private:
+protected:
   int num_threads_;
   int k_correspondences_;
   double rotation_epsilon_;
@@ -93,6 +96,7 @@ private:
   int lm_max_iterations_;
   double lm_init_lambda_factor_;
   double lm_lambda_;
+  bool lm_debug_print_;
 
   RegularizationMethod regularization_method_;
 

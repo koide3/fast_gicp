@@ -1,10 +1,10 @@
 #ifndef FAST_GICP_FAST_GICP_IMPL_HPP
 #define FAST_GICP_FAST_GICP_IMPL_HPP
 
+#include <boost/format.hpp>
 #include <sophus/so3.hpp>
 
 #include <fast_gicp/so3/so3.hpp>
-#include <fast_gicp/opt/gauss_newton.hpp>
 
 namespace fast_gicp {
 
@@ -28,6 +28,7 @@ FastGICP<PointSource, PointTarget>::FastGICP() {
   source_kdtree.reset(new pcl::search::KdTree<PointSource>);
   target_kdtree.reset(new pcl::search::KdTree<PointTarget>);
 
+  lm_debug_print_ = false;
   lm_max_iterations_ = 10;
   lm_init_lambda_factor_ = 1e-9;
   lm_lambda_ = -1.0;
@@ -70,6 +71,11 @@ void FastGICP<PointSource, PointTarget>::setInitialLambdaFactor(double init_lamb
 template<typename PointSource, typename PointTarget>
 void FastGICP<PointSource, PointTarget>::setMaxInnerIterations(int max_iterations) {
   lm_max_iterations_ = max_iterations;
+}
+
+template<typename PointSource, typename PointTarget>
+void FastGICP<PointSource, PointTarget>::setDebugPrint(bool debug_print) {
+  lm_debug_print_ = debug_print;
 }
 
 template<typename PointSource, typename PointTarget>
@@ -159,8 +165,15 @@ bool FastGICP<PointSource, PointTarget>::lm_step(Eigen::Isometry3d& x0, Eigen::I
     double yi = compute_error(xi);
     double rho = (y0 - yi) / (d.dot(lm_lambda_ * d - b));
 
+    if(lm_debug_print_) {
+      if(i == 0) {
+        std::cout << boost::format("--- LM optimization ---\n%5s %15s %15s %15s %15s %15s %5s\n") % "i" % "y0" % "yi" % "rho" % "lambda" % "|delta|" % "dec";
+      }
+      char dec = rho > 0.0 ? 'x' : ' ';
+      std::cout << boost::format("%5d %15g %15g %15g %15g %15g %5c") % i % y0 % yi % rho % lm_lambda_ % d.norm() % dec << std::endl;
+    }
+
     if(rho < 0) {
-      std::cerr << "not decreased" << std::endl;
       lm_lambda_ = nu * lm_lambda_;
       nu = 2 * nu;
       continue;

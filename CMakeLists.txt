@@ -7,7 +7,7 @@ set(CMAKE_CXX_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
 
 set(CMAKE_BUILD_TYPE "Release")
 
-find_package(catkin REQUIRED)
+find_package(catkin)
 
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -29,12 +29,14 @@ endif()
 ###################################
 ## catkin specific configuration ##
 ###################################
-catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES fast_gicp
-#  CATKIN_DEPENDS other_catkin_pkg
-#  DEPENDS system_lib
-)
+if(catkin_FOUND)
+  catkin_package(
+    INCLUDE_DIRS include thirdparty/Sophus
+    LIBRARIES fast_gicp
+  #  CATKIN_DEPENDS other_catkin_pkg
+  #  DEPENDS system_lib
+  )
+endif()
 
 ###########
 ## Build ##

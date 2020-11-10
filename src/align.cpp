@@ -167,13 +167,13 @@ int main(int argc, char** argv) {
   vgicp_cuda.setResolution(1.0);
   // vgicp_cuda uses CPU-based parallel KDTree in covariance estimation by default
   // on a modern CPU, it is faster than GPU_BRUTEFORCE
-  // vgicp_cuda.setNearesetNeighborSearchMethod(fast_gicp::CPU_PARALLEL_KDTREE);
+  // vgicp_cuda.setNearesetNeighborSearchMethod(fast_gicp::NearestNeighborMethod::CPU_PARALLEL_KDTREE);
   test(vgicp_cuda, target_cloud, source_cloud);
 
   std::cout << "--- vgicp_cuda (gpu_bruteforce) ---" << std::endl;
   // use GPU-based bruteforce nearest neighbor search for covariance estimation
   // this would be a good choice if your PC has a weak CPU and a strong GPU (e.g., NVIDIA Jetson)
-  vgicp_cuda.setNearesetNeighborSearchMethod(fast_gicp::GPU_BRUTEFORCE);
+  vgicp_cuda.setNearesetNeighborSearchMethod(fast_gicp::NearestNeighborMethod::GPU_BRUTEFORCE);
   test(vgicp_cuda, target_cloud, source_cloud);
 #endif
 

@@ -3,11 +3,11 @@
 
 namespace fast_gicp {
 
-enum RegularizationMethod { NONE, MIN_EIG, NORMALIZED_MIN_EIG, PLANE, FROBENIUS };
+enum class RegularizationMethod { NONE, MIN_EIG, NORMALIZED_MIN_EIG, PLANE, FROBENIUS };
 
-enum NeighborSearchMethod { DIRECT27, DIRECT7, DIRECT1 };
+enum class NeighborSearchMethod { DIRECT27, DIRECT7, DIRECT1 };
 
-enum VoxelAccumulationMode { ADDITIVE, ADDITIVE_WEIGHTED, MULTIPLICATIVE };
+enum class VoxelAccumulationMode { ADDITIVE, ADDITIVE_WEIGHTED, MULTIPLICATIVE };
 }
 
 #endif

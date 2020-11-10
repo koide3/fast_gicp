@@ -21,8 +21,8 @@ FastVGICP<PointSource, PointTarget>::FastVGICP() : FastGICP<PointSource, PointTa
   this->reg_name_ = "FastVGICP";
 
   voxel_resolution_ = 1.0;
-  search_method_ = DIRECT1;
-  voxel_mode_ = ADDITIVE;
+  search_method_ = NeighborSearchMethod::DIRECT1;
+  voxel_mode_ = VoxelAccumulationMode::ADDITIVE;
 }
 
 template<typename PointSource, typename PointTarget>
@@ -74,11 +74,11 @@ void FastVGICP<PointSource, PointTarget>::create_voxelmap(const PointCloudTarget
     if(found == voxels.end()) {
       GaussianVoxel::Ptr voxel;
       switch(voxel_mode_) {
-        case ADDITIVE:
-        case ADDITIVE_WEIGHTED:
+        case VoxelAccumulationMode::ADDITIVE:
+        case VoxelAccumulationMode::ADDITIVE_WEIGHTED:
           voxel = std::make_shared<AdditiveGaussianVoxel>();
           break;
-        case MULTIPLICATIVE:
+        case VoxelAccumulationMode::MULTIPLICATIVE:
           voxel = std::make_shared<MultiplicativeGaussianVoxel>();
           break;
       }
@@ -101,11 +101,11 @@ std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> FastVGIC
     default:
       std::cerr << "here must not be reached" << std::endl;
       abort();
-    case DIRECT1:
+    case NeighborSearchMethod::DIRECT1:
       return std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>>{
         Eigen::Vector3i(0, 0, 0)
       };
-    case DIRECT7:
+    case NeighborSearchMethod::DIRECT7:
       return std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>>{
         Eigen::Vector3i(0, 0, 0),
         Eigen::Vector3i(1, 0, 0),

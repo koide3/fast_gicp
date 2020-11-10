@@ -87,9 +87,10 @@ if(CUDA_FOUND)
     thirdparty/Eigen
     thirdparty/nvbio
   )
-  target_link_libraries(fast_vgicp_cuda
-    cublas
-  )
+  cuda_add_cublas_to_target(fast_vgicp_cuda)
+  # target_link_libraries(fast_vgicp_cuda
+  #   cublas
+  # )
 
   # add vgicp_cuda to libfast_gicp
   target_sources(fast_gicp PRIVATE

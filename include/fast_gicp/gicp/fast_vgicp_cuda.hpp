@@ -16,7 +16,7 @@ namespace fast_gicp {
 
 class FastVGICPCudaCore;
 
-enum NearestNeighborMethod { CPU_PARALLEL_KDTREE, GPU_BRUTEFORCE };
+enum class NearestNeighborMethod { CPU_PARALLEL_KDTREE, GPU_BRUTEFORCE };
 
 /**
  * @brief Fast Voxelized GICP algorithm boosted with CUDA

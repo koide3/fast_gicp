@@ -2,8 +2,6 @@
 #define FAST_GICP_FAST_GICP_IMPL_HPP
 
 #include <boost/format.hpp>
-#include <sophus/so3.hpp>
-
 #include <fast_gicp/so3/so3.hpp>
 
 namespace fast_gicp {
@@ -158,7 +156,7 @@ bool FastGICP<PointSource, PointTarget>::lm_step(Eigen::Isometry3d& x0, Eigen::I
     Eigen::Matrix<double, 6, 1> d = solver.solve(-b);
 
     delta.setIdentity();
-    delta.linear() = Sophus::SO3d::exp(d.head<3>()).matrix();
+    delta.linear() = so3_exp(d.head<3>()).toRotationMatrix();
     delta.translation() = d.tail<3>();
 
     Eigen::Isometry3d xi = delta * x0;

@@ -9,7 +9,6 @@
 #include <pcl/search/kdtree.h>
 #include <pcl/registration/registration.h>
 
-#include <sophus/so3.hpp>
 #include <fast_gicp/gicp/gicp_settings.hpp>
 
 namespace fast_gicp {

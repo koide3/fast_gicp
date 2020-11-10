@@ -30,7 +30,7 @@ endif()
 ## catkin specific configuration ##
 ###################################
 catkin_package(
-  INCLUDE_DIRS include thirdparty/Sophus
+  INCLUDE_DIRS include
   LIBRARIES fast_gicp
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
@@ -44,7 +44,6 @@ add_library(fast_gicp
   src/fast_gicp/gicp/fast_gicp.cpp
   src/fast_gicp/gicp/fast_gicp_st.cpp
   src/fast_gicp/gicp/fast_vgicp.cpp
-  src/fast_gicp/gicp/experimental/fast_gicp_mp.cpp
 )
 
 target_link_libraries(fast_gicp
@@ -52,7 +51,6 @@ target_link_libraries(fast_gicp
 )
 target_include_directories(fast_gicp PUBLIC
   include
-  thirdparty/Sophus
   ${PCL_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}

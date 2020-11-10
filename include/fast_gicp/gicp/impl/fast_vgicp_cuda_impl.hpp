@@ -10,7 +10,6 @@
 #include <pcl/search/kdtree.h>
 #include <pcl/registration/registration.h>
 
-#include <sophus/so3.hpp>
 #include <fast_gicp/gicp/fast_vgicp_cuda.hpp>
 #include <fast_gicp/cuda/fast_vgicp_cuda.cuh>
 

@@ -36,8 +36,7 @@ cd .. && catkin_make -DCMAKE_BUILD_TYPE=Release
 ### Non-ROS
 ```bash
 git clone https://github.com/SMRT-AIST/fast_gicp --recursive
-cd fast_gicp && git checkout non_ros
-mkdir build && cd build
+mkdir fast_gicp/build && fast_gicp/build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j8
 ```

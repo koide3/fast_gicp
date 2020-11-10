@@ -50,23 +50,24 @@ rosrun fast_gicp gicp_align 251370668.pcd 251371071.pcd
 ```
 
 ```
-target:17249[pts] source:17249[pts]
+target:17249[pts] source:17518[pts]
 --- pcl_gicp ---
-single:116.098[msec] 100times:11157.4[msec]
+single:116.732[msec] 100times:10867.1[msec] fitness_score:0.204306
 --- pcl_ndt ---
-single:168.511[msec] 100times:15957.2[msec]
+single:52.8007[msec] 100times:5220.49[msec] fitness_score:0.226416
 --- fgicp_st ---
-single:106.775[msec] 100times:10525.3[msec] 100times_reuse:6719.9[msec]
+single:110.343[msec] 100times:10651.2[msec] 100times_reuse:6962.1[msec] fitness_score:0.0922969
 --- fgicp_mt ---
-single:39.8451[msec] 100times:3159.26[msec] 100times_reuse:2279.86[msec]
+single:24.3643[msec] 100times:2716.7[msec] 100times_reuse:1799.1[msec] fitness_score:0.0922969
 --- vgicp_st ---
-single:111.046[msec] 100times:8228.94[msec] 100times_reuse:4354.57[msec]
+single:115.041[msec] 100times:8759.43[msec] 100times_reuse:4784.57[msec] fitness_score:0.0912174
 --- vgicp_mt ---
-single:23.0753[msec] 100times:2345.63[msec] 100times_reuse:1381.06[msec]
+single:19.705[msec] 100times:1963.74[msec] 100times_reuse:1044.29[msec] fitness_score:0.0912174
 --- vgicp_cuda (parallel_kdtree) ---
-single:16.3572[msec] 100times:1585.69[msec] 100times_reuse:783.953[msec]
+single:16.1846[msec] 100times:1611.89[msec] 100times_reuse:779.65[msec] fitness_score:0.0709287
 --- vgicp_cuda (gpu_bruteforce) ---
-single:47.8433[msec] 100times:3235.27[msec] 100times_reuse:1582.99[msec]
+single:49.7294[msec] 100times:3145.78[msec] 100times_reuse:1541.36[msec] fitness_score:0.0710122
+
 ```
 
 See [src/align.cpp](https://github.com/SMRT-AIST/fast_gicp/blob/master/src/align.cpp) for the detailed usage.

@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
   voxelgrid.filter(*filtered);
   source_cloud = filtered;
 
-  std::cout << "target:" << target_cloud->size() << "[pts] source:" << target_cloud->size() << "[pts]" << std::endl;
+  std::cout << "target:" << target_cloud->size() << "[pts] source:" << source_cloud->size() << "[pts]" << std::endl;
 
   std::cout << "--- pcl_gicp ---" << std::endl;
   pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> pcl_gicp;

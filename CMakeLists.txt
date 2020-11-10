@@ -18,7 +18,6 @@ if (OPENMP_FOUND)
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
-
 # if you want to use GPU-powered implementation, uncomment the following line
 # find_package(CUDA)
 if(CUDA_FOUND)

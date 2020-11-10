@@ -46,7 +46,6 @@ add_library(fast_gicp
   src/fast_gicp/gicp/fast_gicp.cpp
   src/fast_gicp/gicp/fast_gicp_st.cpp
   src/fast_gicp/gicp/fast_vgicp.cpp
-  src/fast_gicp/gicp/experimental/fast_gicp_mp.cpp
 )
 
 target_link_libraries(fast_gicp
@@ -54,7 +53,6 @@ target_link_libraries(fast_gicp
 )
 target_include_directories(fast_gicp PUBLIC
   include
-  thirdparty/Sophus
   ${PCL_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
@@ -89,9 +87,10 @@ if(CUDA_FOUND)
     thirdparty/Eigen
     thirdparty/nvbio
   )
-  target_link_libraries(fast_vgicp_cuda
-    cublas
-  )
+  cuda_add_cublas_to_target(fast_vgicp_cuda)
+  # target_link_libraries(fast_vgicp_cuda
+  #   cublas
+  # )
 
   # add vgicp_cuda to libfast_gicp
   target_sources(fast_gicp PRIVATE

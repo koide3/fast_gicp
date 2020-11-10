@@ -8,7 +8,7 @@ This package is a collection of GICP-based fast point cloud registration algorit
 - FastVGICPCuda: CUDA-optimized voxelized GICP algorithm (**\~120FPS**)
 ![proctime](data/proctime.png)
 
-[![Build Status](https://travis-ci.org/SMRT-AIST/fast_gicp.svg?branch=master)](https://travis-ci.org/SMRT-AIST/fast_gicp)
+[![Build Status](https://travis-ci.org/SMRT-AIST/fast_gicp.svg?branch=master)](https://travis-ci.org/SMRT-AIST/fast_gicp) on melodic & noetic
 
 ## Installation
 
@@ -52,9 +52,9 @@ rosrun fast_gicp gicp_align 251370668.pcd 251371071.pcd
 ```
 target:17249[pts] source:17249[pts]
 --- pcl_gicp ---
-single:116.098[msec] 100times:11157.4[msec] 
+single:116.098[msec] 100times:11157.4[msec]
 --- pcl_ndt ---
-single:168.511[msec] 100times:15957.2[msec] 
+single:168.511[msec] 100times:15957.2[msec]
 --- fgicp_st ---
 single:106.775[msec] 100times:10525.3[msec] 100times_reuse:6719.9[msec]
 --- fgicp_mt ---
@@ -86,7 +86,6 @@ rosrun fast_gicp gicp_kitti /your/kitti/path/sequences/00/velodyne
 
 
 ## Papers
-If you use this package, please cite the following paper:  
 - Kenji Koide, Masashi Yokozuka, Shuji Oishi, and Atsuhiko Banno, Voxelized GICP for fast and accurate 3D point cloud registration [[link]](https://easychair.org/publications/preprint/ftvV)
 
 ## Contact

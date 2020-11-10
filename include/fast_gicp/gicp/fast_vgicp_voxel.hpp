@@ -28,14 +28,14 @@ public:
   }
   virtual ~GaussianVoxel() {}
 
-  virtual void append(const Eigen::Vector4f& mean_, const Eigen::Matrix4f& cov_) = 0;
+  virtual void append(const Eigen::Vector4d& mean_, const Eigen::Matrix4d& cov_) = 0;
 
   virtual void finalize() = 0;
 
 public:
   int num_points;
-  Eigen::Vector4f mean;
-  Eigen::Matrix4f cov;
+  Eigen::Vector4d mean;
+  Eigen::Matrix4d cov;
 };
 
 struct MultiplicativeGaussianVoxel : GaussianVoxel {
@@ -45,9 +45,9 @@ public:
   MultiplicativeGaussianVoxel() : GaussianVoxel() {}
   virtual ~MultiplicativeGaussianVoxel() {}
 
-  virtual void append(const Eigen::Vector4f& mean_, const Eigen::Matrix4f& cov_) override {
+  virtual void append(const Eigen::Vector4d& mean_, const Eigen::Matrix4d& cov_) override {
     num_points++;
-    Eigen::Matrix4f cov_inv = cov_;
+    Eigen::Matrix4d cov_inv = cov_;
     cov_inv(3, 3) = 1;
     cov_inv = cov_inv.inverse().eval();
 
@@ -71,7 +71,7 @@ public:
   AdditiveGaussianVoxel() : GaussianVoxel() {}
   virtual ~AdditiveGaussianVoxel() {}
 
-  virtual void append(const Eigen::Vector4f& mean_, const Eigen::Matrix4f& cov_) override {
+  virtual void append(const Eigen::Vector4d& mean_, const Eigen::Matrix4d& cov_) override {
     num_points++;
     mean += mean_;
     cov += cov_;

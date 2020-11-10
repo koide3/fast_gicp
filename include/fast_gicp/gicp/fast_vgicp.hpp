@@ -11,8 +11,8 @@
 #include <pcl/search/kdtree.h>
 #include <pcl/registration/registration.h>
 
-#include <sophus/so3.hpp>
 #include <fast_gicp/gicp/gicp_settings.hpp>
+#include <fast_gicp/gicp/fast_gicp.hpp>
 #include <fast_gicp/gicp/fast_vgicp_voxel.hpp>
 
 namespace fast_gicp {
@@ -21,7 +21,7 @@ namespace fast_gicp {
  * @brief Fast Voxelized GICP algorithm boosted with OpenMP
  */
 template<typename PointSource, typename PointTarget>
-class FastVGICP : public pcl::Registration<PointSource, PointTarget, float> {
+class FastVGICP : public FastGICP<PointSource, PointTarget> {
 public:
   using Scalar = float;
   using Matrix4 = typename pcl::Registration<PointSource, PointTarget, Scalar>::Matrix4;
@@ -36,80 +36,54 @@ public:
 
   using Ptr = boost::shared_ptr<FastVGICP<PointSource, PointTarget>>;
 
-  using pcl::Registration<PointSource, PointTarget, Scalar>::reg_name_;
+protected:
   using pcl::Registration<PointSource, PointTarget, Scalar>::input_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::target_;
 
-  using pcl::Registration<PointSource, PointTarget, Scalar>::nr_iterations_;
-  using pcl::Registration<PointSource, PointTarget, Scalar>::max_iterations_;
-  using pcl::Registration<PointSource, PointTarget, Scalar>::final_transformation_;
-  using pcl::Registration<PointSource, PointTarget, Scalar>::transformation_epsilon_;
-  using pcl::Registration<PointSource, PointTarget, Scalar>::converged_;
-  using pcl::Registration<PointSource, PointTarget, Scalar>::corr_dist_threshold_;
+  using FastGICP<PointSource, PointTarget>::num_threads_;
+  using FastGICP<PointSource, PointTarget>::source_kdtree;
+  using FastGICP<PointSource, PointTarget>::target_kdtree;
+  using FastGICP<PointSource, PointTarget>::source_covs;
+  using FastGICP<PointSource, PointTarget>::target_covs;
 
+public:
   FastVGICP();
   virtual ~FastVGICP() override;
 
-  void setRotationEpsilon(double eps);
-
-  void setNumThreads(int n);
-
   void setResolution(double resolution);
-
-  void setCorrespondenceRandomness(int k);
-
-  void setRegularizationMethod(RegularizationMethod method);
-
-  void setNeighborSearchMethod(NeighborSearchMethod method);
 
   void setVoxelAccumulationMode(VoxelAccumulationMode mode);
 
-  void swapSourceAndTarget();
+  void setNeighborSearchMethod(NeighborSearchMethod method);
 
-  void clearSource();
-
-  void clearTarget();
-
-  virtual void setInputSource(const PointCloudSourceConstPtr& cloud) override;
+  virtual void swapSourceAndTarget() override;
 
   virtual void setInputTarget(const PointCloudTargetConstPtr& cloud) override;
-
-protected:
-  virtual void computeTransformation(PointCloudSource& output, const Matrix4& guess) override;
 
 private:
   void create_voxelmap(const PointCloudTargetConstPtr& cloud);
   std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> neighbor_offsets() const;
 
-  Eigen::Vector3i voxel_coord(const Eigen::Vector4f& x) const;
-  Eigen::Vector4f voxel_origin(const Eigen::Vector3i& coord) const;
+  Eigen::Vector3i voxel_coord(const Eigen::Vector4d& x) const;
+  Eigen::Vector4d voxel_origin(const Eigen::Vector3i& coord) const;
   GaussianVoxel::Ptr lookup_voxel(const Eigen::Vector3i& x) const;
 
-  bool is_converged(const Eigen::Matrix<float, 6, 1>& delta) const;
+  virtual void update_correspondences(const Eigen::Isometry3d& trans) override;
 
-  Eigen::VectorXf loss_ls(const Eigen::Matrix<float, 6, 1>& x, Eigen::MatrixXf* J) const;
+  virtual void update_mahalanobis(const Eigen::Isometry3d& trans) override;
 
-  template<typename PointT>
-  bool calculate_covariances(const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>>& covariances);
+  virtual double compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H = nullptr, Eigen::Matrix<double, 6, 1>* b = nullptr) const override;
 
 private:
-  int num_threads_;
-  int k_correspondences_;
-  double rotation_epsilon_;
-
-  std::unique_ptr<pcl::search::KdTree<PointSource>> source_kdtree;
-  std::unique_ptr<pcl::search::KdTree<PointTarget>> target_kdtree;
-
-  std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>> source_covs;
-  std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>> target_covs;
-
   double voxel_resolution_;
   NeighborSearchMethod search_method_;
-  RegularizationMethod regularization_method_;
   VoxelAccumulationMode voxel_mode_;
 
   using VoxelMap = std::unordered_map<Eigen::Vector3i, GaussianVoxel::Ptr, Vector3iHash, std::equal_to<Eigen::Vector3i>, Eigen::aligned_allocator<std::pair<Eigen::Vector3i, GaussianVoxel::Ptr>>>;
   VoxelMap voxels;
+
+  std::vector<std::pair<int, GaussianVoxel::Ptr>> voxel_correspondences;
+  std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> voxel_mahalanobis;
 };
 }  // namespace fast_gicp
 

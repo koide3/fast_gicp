@@ -10,7 +10,6 @@
 #include <pcl/search/kdtree.h>
 #include <pcl/registration/registration.h>
 
-#include <sophus/so3.hpp>
 #include <fast_gicp/gicp/fast_vgicp_cuda.hpp>
 #include <fast_gicp/cuda/fast_vgicp_cuda.cuh>
 
@@ -25,8 +24,8 @@ FastVGICPCuda<PointSource, PointTarget>::FastVGICPCuda() {
   transformation_epsilon_ = 5e-4;
 
   voxel_resolution_ = 1.0;
-  regularization_method_ = PLANE;
-  neighbor_search_method_ = CPU_PARALLEL_KDTREE;
+  regularization_method_ = RegularizationMethod::PLANE;
+  neighbor_search_method_ = NearestNeighborMethod::CPU_PARALLEL_KDTREE;
 
   vgicp_cuda.reset(new FastVGICPCudaCore());
   vgicp_cuda->set_max_iterations(max_iterations_);
@@ -94,12 +93,11 @@ void FastVGICPCuda<PointSource, PointTarget>::setInputSource(const PointCloudSou
 
   vgicp_cuda->set_source_cloud(points);
   switch(neighbor_search_method_) {
-    case CPU_PARALLEL_KDTREE: {
+    case NearestNeighborMethod::CPU_PARALLEL_KDTREE: {
       std::vector<int> neighbors = find_neighbors_parallel_kdtree(k_correspondences_, cloud, source_kdtree);
       vgicp_cuda->set_source_neighbors(k_correspondences_, neighbors);
-    }
-      break;
-    case GPU_BRUTEFORCE:
+    } break;
+    case NearestNeighborMethod::GPU_BRUTEFORCE:
       vgicp_cuda->find_source_neighbors(k_correspondences_);
       break;
   }
@@ -120,11 +118,11 @@ void FastVGICPCuda<PointSource, PointTarget>::setInputTarget(const PointCloudTar
 
   vgicp_cuda->set_target_cloud(points);
   switch(neighbor_search_method_) {
-    case CPU_PARALLEL_KDTREE: {
+    case NearestNeighborMethod::CPU_PARALLEL_KDTREE: {
       std::vector<int> neighbors = find_neighbors_parallel_kdtree(k_correspondences_, cloud, target_kdtree);
       vgicp_cuda->set_target_neighbors(k_correspondences_, neighbors);
     } break;
-    case GPU_BRUTEFORCE:
+    case NearestNeighborMethod::GPU_BRUTEFORCE:
       vgicp_cuda->find_target_neighbors(k_correspondences_);
       break;
   }

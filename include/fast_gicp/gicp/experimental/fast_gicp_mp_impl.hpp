@@ -30,7 +30,7 @@ FastGICPMultiPoints<PointSource, PointTarget>::FastGICPMultiPoints() {
   rotation_epsilon_ = 1e-5;
   transformation_epsilon_ = 1e-5;
   // corr_dist_threshold_ = 1.0;
-  regularization_method_ = PLANE;
+  regularization_method_ = RegularizationMethod::PLANE;
   corr_dist_threshold_ = std::numeric_limits<float>::max();
   neighbor_search_radius_ = 0.5;
 }
@@ -242,7 +242,7 @@ bool FastGICPMultiPoints<PointSource, PointTarget>::calculate_covariances(const 
     data.colwise() -= data.rowwise().mean().eval();
     Eigen::Matrix4f cov = data * data.transpose();
 
-    if(regularization_method_ == FROBENIUS) {
+    if(regularization_method_ == RegularizationMethod::FROBENIUS) {
       double lambda = 1e-3;
       Eigen::Matrix3d C = cov.block<3, 3>(0, 0).cast<double>() + lambda * Eigen::Matrix3d::Identity();
       Eigen::Matrix3d C_inv = C.inverse();
@@ -256,13 +256,13 @@ bool FastGICPMultiPoints<PointSource, PointTarget>::calculate_covariances(const 
         default:
           std::cerr << "here must not be reached" << std::endl;
           abort();
-        case PLANE:
+        case RegularizationMethod::PLANE:
           values = Eigen::Vector3f(1, 1, 1e-3);
           break;
-        case MIN_EIG:
+        case RegularizationMethod::MIN_EIG:
           values = svd.singularValues().array().max(1e-3);
           break;
-        case NORMALIZED_MIN_EIG:
+        case RegularizationMethod::NORMALIZED_MIN_EIG:
           values = svd.singularValues() / svd.singularValues().maxCoeff();
           values = values.array().max(1e-3);
           break;

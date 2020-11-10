@@ -27,8 +27,8 @@ public:
 template<typename Scalar, int N>
 class LevenbergMarquardt : public GaussNewton<Scalar, N> {
 public:
-  LevenbergMarquardt(double init_lambda=10.0)
-  : lambda(init_lambda)
+  LevenbergMarquardt()
+  : tau(1e-3)
   {}
   virtual ~LevenbergMarquardt() override {}
 
@@ -44,7 +44,9 @@ public:
   }
 
 private:
+  double tau;
   double lambda;
+  int max_iterations;
 };
 }
 

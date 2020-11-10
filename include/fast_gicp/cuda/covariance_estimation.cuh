@@ -83,10 +83,10 @@ static void covariance_estimation(const thrust::device_vector<Eigen::Vector3f>& 
     default:
       std::cerr << "unimplemented covariance regularization method was selected!!" << std::endl;
       abort();
-    case PLANE:
+    case RegularizationMethod::PLANE:
       thrust::for_each(covariances.begin(), covariances.end(), covariance_regularization_svd());
       break;
-    case FROBENIUS:
+    case RegularizationMethod::FROBENIUS:
       thrust::for_each(covariances.begin(), covariances.end(), covariance_regularization_frobenius());
       break;
   }

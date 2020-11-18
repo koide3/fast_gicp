@@ -223,8 +223,6 @@ double FastVGICP<PointSource, PointTarget>::compute_error(const Eigen::Isometry3
     const Eigen::Vector4d transed_mean_A = trans * mean_A;
     const Eigen::Vector4d error = std::sqrt(target_voxel->num_points) * voxel_mahalanobis[i] * (mean_B - transed_mean_A);
 
-    const double w = voxel_mode_ == VoxelAccumulationMode::ADDITIVE_WEIGHTED ? std::sqrt(target_voxel->num_points) : 1.0;
-
     sum_errors += error.head<3>().squaredNorm();
 
     if(H == nullptr || b == nullptr) {

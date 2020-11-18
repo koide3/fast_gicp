@@ -116,6 +116,10 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  // remove invalid points around origin
+  source_cloud->erase(std::remove_if(source_cloud->begin(), source_cloud->end(), [=](const pcl::PointXYZ& pt) { return pt.getVector3fMap().squaredNorm() < 1e-3; }), source_cloud->end());
+  target_cloud->erase(std::remove_if(target_cloud->begin(), target_cloud->end(), [=](const pcl::PointXYZ& pt) { return pt.getVector3fMap().squaredNorm() < 1e-3; }), target_cloud->end());
+
   // downsampling
   pcl::ApproximateVoxelGrid<pcl::PointXYZ> voxelgrid;
   voxelgrid.setLeafSize(0.1f, 0.1f, 0.1f);

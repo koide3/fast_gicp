@@ -2,6 +2,7 @@
 #define FAST_GICP_SO3_HPP
 
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 
 namespace fast_gicp {
 

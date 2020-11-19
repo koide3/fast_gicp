@@ -81,6 +81,7 @@ void test(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& tar
   pcl::PointCloud<pcl::PointXYZ>::ConstPtr source_ = source;
   for(int i = 0; i < 100; i++) {
     reg.swapSourceAndTarget();
+    reg.clearTarget();
     reg.clearSource();
 
     reg.setInputTarget(target_);

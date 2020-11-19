@@ -65,12 +65,20 @@ void FastVGICPCudaCore::swap_source_and_target() {
 
 void FastVGICPCudaCore::set_source_cloud(const std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>>& cloud) {
   thrust::host_vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>> points(cloud.begin(), cloud.end());
-  source_points.reset(new Points(points));
+  if(!source_points) {
+    source_points.reset(new Points());
+  }
+
+  *source_points = points;
 }
 
 void FastVGICPCudaCore::set_target_cloud(const std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>>& cloud) {
   thrust::host_vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>> points(cloud.begin(), cloud.end());
-  target_points.reset(new Points(points));
+  if(!target_points) {
+    target_points.reset(new Points());
+  }
+
+  *target_points = points;
 }
 
 void FastVGICPCudaCore::set_source_neighbors(int k, const std::vector<int>& neighbors) {

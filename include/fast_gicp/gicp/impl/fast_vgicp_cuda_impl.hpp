@@ -46,6 +46,16 @@ void FastVGICPCuda<PointSource, PointTarget>::swapSourceAndTarget() {
 }
 
 template<typename PointSource, typename PointTarget>
+void FastVGICPCuda<PointSource, PointTarget>::clearSource() {
+  input_.reset();
+}
+
+template<typename PointSource, typename PointTarget>
+void FastVGICPCuda<PointSource, PointTarget>::clearTarget() {
+  target_.reset();
+}
+
+template<typename PointSource, typename PointTarget>
 void FastVGICPCuda<PointSource, PointTarget>::setInputSource(const PointCloudSourceConstPtr& cloud) {
   // the input cloud is the same as the previous one
   if(cloud == input_) {

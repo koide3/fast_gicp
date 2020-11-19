@@ -45,7 +45,7 @@ struct find_voxel_correspondences_kernel {
   }
 
   __host__ __device__ int operator()(const Eigen::Vector3f& pt) const {
-    return lookup_voxel(pt);
+    return lookup_voxel(R * pt + t);
   }
 
   const Eigen::Matrix3f R;

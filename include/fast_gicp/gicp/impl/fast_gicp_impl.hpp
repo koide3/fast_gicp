@@ -121,6 +121,12 @@ void FastGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource&
   lm_lambda_ = -1.0;
   converged_ = false;
 
+  if(lm_debug_print_) {
+    std::cout << "********************************************" << std::endl;
+    std::cout << "***************** optimize *****************" << std::endl;
+    std::cout << "********************************************" << std::endl;
+  }
+
   for(int i = 0; i < max_iterations_ && !converged_; i++) {
     nr_iterations_ = i;
 

@@ -46,15 +46,15 @@ struct compute_derivatives_kernel {
   T operator() (const thrust::tuple<Eigen::Vector3f, Eigen::Matrix3f, int>& input_tuple) const {
     const Eigen::Vector3f& mean_A = thrust::get<0>(input_tuple);
     const Eigen::Matrix3f& cov_A = thrust::get<1>(input_tuple);
+
     const int voxel_index = thrust::get<2>(input_tuple);
-
-    if(voxel_index < 0) {
-      return thrust::make_tuple(0.0f, Eigen::Matrix<float, 6, 6>::Zero().eval(), Eigen::Matrix<float, 6, 1>::Zero().eval());
-    }
-
     int num_points = thrust::raw_pointer_cast(voxel_num_points_ptr)[voxel_index];
     const Eigen::Vector3f& mean_B = thrust::raw_pointer_cast(voxel_means_ptr)[voxel_index];
     const Eigen::Matrix3f& cov_B = thrust::raw_pointer_cast(voxel_covs_ptr)[voxel_index];
+
+    if(voxel_index < 0 || num_points <= 0) {
+      return thrust::make_tuple(0.0f, Eigen::Matrix<float, 6, 6>::Zero().eval(), Eigen::Matrix<float, 6, 1>::Zero().eval());
+    }
 
     const Eigen::Vector3f transed_mean_A = R * mean_A + t;
 
@@ -127,6 +127,8 @@ __host__ __device__ float sum_errors_kernel::operator() (const float& lhs, const
 }
 
 } // namespace
+
+int count = 0;
 
 double compute_derivatives(
   const thrust::device_vector<Eigen::Vector3f>& src_points,

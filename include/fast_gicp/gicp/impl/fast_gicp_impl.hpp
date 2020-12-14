@@ -178,6 +178,10 @@ bool FastGICP<PointSource, PointTarget>::lm_step(Eigen::Isometry3d& x0, Eigen::I
     }
 
     if(rho < 0) {
+      if(is_converged(delta)) {
+        return true;
+      }
+
       lm_lambda_ = nu * lm_lambda_;
       nu = 2 * nu;
       continue;

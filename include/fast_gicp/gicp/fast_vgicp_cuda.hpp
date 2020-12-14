@@ -14,7 +14,9 @@
 
 namespace fast_gicp {
 
+namespace cuda {
 class FastVGICPCudaCore;
+}
 
 enum class NearestNeighborMethod { CPU_PARALLEL_KDTREE, GPU_BRUTEFORCE };
 
@@ -44,17 +46,6 @@ public:
   using FastVGICP<PointSource, PointTarget>::voxel_resolution_;
   using FastVGICP<PointSource, PointTarget>::regularization_method_;
 
-  /*
-  using pcl::Registration<PointSource, PointTarget, Scalar>::reg_name_;
-
-  using pcl::Registration<PointSource, PointTarget, Scalar>::nr_iterations_;
-  using pcl::Registration<PointSource, PointTarget, Scalar>::max_iterations_;
-  using pcl::Registration<PointSource, PointTarget, Scalar>::final_transformation_;
-  using pcl::Registration<PointSource, PointTarget, Scalar>::transformation_epsilon_;
-  using pcl::Registration<PointSource, PointTarget, Scalar>::converged_;
-  using pcl::Registration<PointSource, PointTarget, Scalar>::corr_dist_threshold_;
-  */
-
   FastVGICPCuda();
   virtual ~FastVGICPCuda() override;
 
@@ -75,20 +66,17 @@ protected:
 
   virtual void update_correspondences(const Eigen::Isometry3d& trans) override;
 
-  virtual void update_mahalanobis(const Eigen::Isometry3d& trans) override;
+  virtual double linearize(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H = nullptr, Eigen::Matrix<double, 6, 1>* b = nullptr) override;
 
-  virtual double compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H = nullptr, Eigen::Matrix<double, 6, 1>* b = nullptr) const override;
+  virtual double compute_error(const Eigen::Isometry3d& trans) override;
 
   template<typename PointT>
-  std::vector<int> find_neighbors_parallel_kdtree(int k, const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree) const;
+  std::vector<int> find_neighbors_parallel_kdtree(int k, const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud) const;
 
 private:
-  pcl::search::KdTree<PointSource> source_kdtree;
-  pcl::search::KdTree<PointTarget> target_kdtree;
-
   NearestNeighborMethod neighbor_search_method_;
 
-  std::unique_ptr<FastVGICPCudaCore> vgicp_cuda;
+  std::unique_ptr<cuda::FastVGICPCudaCore> vgicp_cuda_;
 };
 
 }  // namespace fast_gicp

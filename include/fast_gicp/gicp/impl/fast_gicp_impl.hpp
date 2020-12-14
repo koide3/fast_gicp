@@ -111,10 +111,6 @@ void FastGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource&
     calculate_covariances(target_, *target_kdtree_, target_covs_);
   }
 
-  if(target_covs_.size() != target_->size()) {
-
-  }
-
   LsqRegistration<PointSource, PointTarget>::computeTransformation(output, guess);
 }
 

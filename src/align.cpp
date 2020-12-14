@@ -66,8 +66,6 @@ void test(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& tar
   fitness_score = reg.getFitnessScore();
   double single = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
 
-  std::cout << reg.getFinalTransformation() << std::endl;
-
   std::cout << "single:" << single << "[msec] " << std::flush;
 
   // 100 times

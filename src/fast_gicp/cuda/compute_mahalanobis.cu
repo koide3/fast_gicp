@@ -3,6 +3,7 @@
 #include <fstream>
 
 namespace fast_gicp {
+  namespace cuda {
 
 namespace {
 
@@ -69,4 +70,6 @@ void compute_mahalanobis(
 
   // exit(0);
 }
+
+  }
 }

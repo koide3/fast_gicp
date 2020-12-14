@@ -8,6 +8,7 @@
 #include <fast_gicp/cuda/gaussian_voxelmap.cuh>
 
 namespace fast_gicp {
+  namespace cuda {
 
 void compute_mahalanobis(
   const thrust::device_vector<Eigen::Vector3f>& src_points,
@@ -18,6 +19,7 @@ void compute_mahalanobis(
   thrust::device_vector<Eigen::Matrix3f>& mahalanobis
   );
 
+  }
 }  // namespace fast_gicp
 
 #endif

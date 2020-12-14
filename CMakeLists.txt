@@ -19,7 +19,7 @@ if (OPENMP_FOUND)
 endif()
 
 # if you want to use GPU-powered implementation, uncomment the following line
-# find_package(CUDA)
+find_package(CUDA)
 if(CUDA_FOUND)
   include_directories(${CUDA_INCLUDE_DIRS})
   link_directories(${CUDA_LIBRARY_DIRS})
@@ -94,9 +94,6 @@ if(CUDA_FOUND)
     thirdparty/nvbio
   )
   cuda_add_cublas_to_target(fast_vgicp_cuda)
-  # target_link_libraries(fast_vgicp_cuda
-  #   cublas
-  # )
 
   # add vgicp_cuda to libfast_gicp
   target_sources(fast_gicp PRIVATE

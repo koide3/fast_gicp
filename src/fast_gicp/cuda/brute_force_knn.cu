@@ -10,6 +10,7 @@
 #include <nvbio/basic/priority_queue.h>
 
 namespace fast_gicp {
+  namespace cuda {
 
 namespace {
   struct neighborsearch_kernel {
@@ -106,4 +107,5 @@ void brute_force_knn_search(const thrust::device_vector<Eigen::Vector3f>& source
   }
 }
 
+  }
 } // namespace fast_gicp

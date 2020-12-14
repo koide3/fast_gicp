@@ -11,6 +11,7 @@
 #include <fast_gicp/cuda/gaussian_voxelmap.cuh>
 
 namespace fast_gicp {
+  namespace cuda {
 
 namespace  {
 
@@ -168,4 +169,5 @@ double compute_derivatives(
   return thrust::get<0>(sum_errors);
 }
 
+  }
 }  // namespace fast_gicp

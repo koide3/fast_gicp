@@ -42,6 +42,7 @@ endif()
 ###########
 
 add_library(fast_gicp
+  src/fast_gicp/gicp/lsq_registration.cpp
   src/fast_gicp/gicp/fast_gicp.cpp
   src/fast_gicp/gicp/fast_gicp_st.cpp
   src/fast_gicp/gicp/fast_vgicp.cpp

@@ -22,12 +22,15 @@ template<typename Registration>
 void test_pcl(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& target, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& source) {
   pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>);
 
+  double fitness_score = 0.0;
+
   // single run
   auto t1 = std::chrono::high_resolution_clock::now();
   reg.setInputTarget(target);
   reg.setInputSource(source);
   reg.align(*aligned);
   auto t2 = std::chrono::high_resolution_clock::now();
+  fitness_score = reg.getFitnessScore();
   double single = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
   std::cout << "single:" << single << "[msec] " << std::flush;
 
@@ -40,13 +43,15 @@ void test_pcl(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr&
   }
   t2 = std::chrono::high_resolution_clock::now();
   double multi = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
-  std::cout << "100times:" << multi << "[msec] fitness_score:" << reg.getFitnessScore() << std::endl;
+  std::cout << "100times:" << multi << "[msec] fitness_score:" << fitness_score << std::endl;
 }
 
 // benchmark for fast_gicp registration methods
 template<typename Registration>
 void test(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& target, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& source) {
   pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>);
+
+  double fitness_score = 0.0;
 
   // single run
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -58,7 +63,11 @@ void test(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& tar
   reg.setInputSource(source);
   reg.align(*aligned);
   auto t2 = std::chrono::high_resolution_clock::now();
+  fitness_score = reg.getFitnessScore();
   double single = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
+
+  std::cout << reg.getFinalTransformation() << std::endl;
+
   std::cout << "single:" << single << "[msec] " << std::flush;
 
   // 100 times
@@ -93,7 +102,7 @@ void test(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& tar
   t2 = std::chrono::high_resolution_clock::now();
   double reuse = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
 
-  std::cout << "100times_reuse:" << reuse << "[msec] fitness_score:" << reg.getFitnessScore() << std::endl;
+  std::cout << "100times_reuse:" << reuse << "[msec] fitness_score:" << fitness_score << std::endl;
 }
 
 /**

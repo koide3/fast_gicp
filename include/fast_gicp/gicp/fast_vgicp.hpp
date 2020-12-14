@@ -41,10 +41,10 @@ protected:
   using pcl::Registration<PointSource, PointTarget, Scalar>::target_;
 
   using FastGICP<PointSource, PointTarget>::num_threads_;
-  using FastGICP<PointSource, PointTarget>::source_kdtree;
-  using FastGICP<PointSource, PointTarget>::target_kdtree;
-  using FastGICP<PointSource, PointTarget>::source_covs;
-  using FastGICP<PointSource, PointTarget>::target_covs;
+  using FastGICP<PointSource, PointTarget>::source_kdtree_;
+  using FastGICP<PointSource, PointTarget>::target_kdtree_;
+  using FastGICP<PointSource, PointTarget>::source_covs_;
+  using FastGICP<PointSource, PointTarget>::target_covs_;
 
 public:
   FastVGICP();
@@ -61,29 +61,23 @@ public:
   virtual void setInputTarget(const PointCloudTargetConstPtr& cloud) override;
 
 protected:
-  void create_voxelmap(const PointCloudTargetConstPtr& cloud);
-  std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> neighbor_offsets() const;
-
-  Eigen::Vector3i voxel_coord(const Eigen::Vector4d& x) const;
-  Eigen::Vector4d voxel_origin(const Eigen::Vector3i& coord) const;
-  GaussianVoxel::Ptr lookup_voxel(const Eigen::Vector3i& x) const;
+  virtual void computeTransformation(PointCloudSource& output, const Matrix4& guess) override;
 
   virtual void update_correspondences(const Eigen::Isometry3d& trans) override;
 
-  virtual void update_mahalanobis(const Eigen::Isometry3d& trans) override;
+  virtual double linearize(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H = nullptr, Eigen::Matrix<double, 6, 1>* b = nullptr) override;
 
-  virtual double compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H = nullptr, Eigen::Matrix<double, 6, 1>* b = nullptr) const override;
+  virtual double compute_error(const Eigen::Isometry3d& trans) override;
 
 protected:
   double voxel_resolution_;
   NeighborSearchMethod search_method_;
   VoxelAccumulationMode voxel_mode_;
 
-  using VoxelMap = std::unordered_map<Eigen::Vector3i, GaussianVoxel::Ptr, Vector3iHash, std::equal_to<Eigen::Vector3i>, Eigen::aligned_allocator<std::pair<Eigen::Vector3i, GaussianVoxel::Ptr>>>;
-  VoxelMap voxels;
+  std::unique_ptr<GaussianVoxelMap<PointTarget>> voxelmap_;
 
-  std::vector<std::pair<int, GaussianVoxel::Ptr>> voxel_correspondences;
-  std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> voxel_mahalanobis;
+  std::vector<std::pair<int, GaussianVoxel::Ptr>> voxel_correspondences_;
+  std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> voxel_mahalanobis_;
 };
 }  // namespace fast_gicp
 

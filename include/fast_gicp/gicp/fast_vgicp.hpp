@@ -60,7 +60,7 @@ public:
 
   virtual void setInputTarget(const PointCloudTargetConstPtr& cloud) override;
 
-private:
+protected:
   void create_voxelmap(const PointCloudTargetConstPtr& cloud);
   std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> neighbor_offsets() const;
 
@@ -74,7 +74,7 @@ private:
 
   virtual double compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H = nullptr, Eigen::Matrix<double, 6, 1>* b = nullptr) const override;
 
-private:
+protected:
   double voxel_resolution_;
   NeighborSearchMethod search_method_;
   VoxelAccumulationMode voxel_mode_;

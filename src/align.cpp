@@ -81,6 +81,7 @@ void test(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& tar
   pcl::PointCloud<pcl::PointXYZ>::ConstPtr source_ = source;
   for(int i = 0; i < 100; i++) {
     reg.swapSourceAndTarget();
+    reg.clearTarget();
     reg.clearSource();
 
     reg.setInputTarget(target_);
@@ -115,6 +116,10 @@ int main(int argc, char** argv) {
     std::cerr << "failed to open " << argv[2] << std::endl;
     return 1;
   }
+
+  // remove invalid points around origin
+  source_cloud->erase(std::remove_if(source_cloud->begin(), source_cloud->end(), [=](const pcl::PointXYZ& pt) { return pt.getVector3fMap().squaredNorm() < 1e-3; }), source_cloud->end());
+  target_cloud->erase(std::remove_if(target_cloud->begin(), target_cloud->end(), [=](const pcl::PointXYZ& pt) { return pt.getVector3fMap().squaredNorm() < 1e-3; }), target_cloud->end());
 
   // downsampling
   pcl::ApproximateVoxelGrid<pcl::PointXYZ> voxelgrid;

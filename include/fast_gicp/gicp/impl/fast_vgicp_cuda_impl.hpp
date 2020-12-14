@@ -13,50 +13,26 @@
 #include <fast_gicp/gicp/fast_vgicp_cuda.hpp>
 #include <fast_gicp/cuda/fast_vgicp_cuda.cuh>
 
+#include <thrust/host_vector.h>
+#include <thrust/device_vector.h>
+
 namespace fast_gicp {
 
 template<typename PointSource, typename PointTarget>
-FastVGICPCuda<PointSource, PointTarget>::FastVGICPCuda() {
-  reg_name_ = "FastVGICPCuda";
-  max_iterations_ = 64;
-  k_correspondences_ = 20;
-  rotation_epsilon_ = 2e-3;
-  transformation_epsilon_ = 5e-4;
+FastVGICPCuda<PointSource, PointTarget>::FastVGICPCuda() : FastVGICP<PointSource, PointTarget>() {
+  this->reg_name_ = "FastVGICPCuda";
 
-  voxel_resolution_ = 1.0;
-  regularization_method_ = RegularizationMethod::PLANE;
   neighbor_search_method_ = NearestNeighborMethod::CPU_PARALLEL_KDTREE;
 
   vgicp_cuda.reset(new FastVGICPCudaCore());
-  vgicp_cuda->set_max_iterations(max_iterations_);
-  vgicp_cuda->set_rotation_epsilon(rotation_epsilon_);
-  vgicp_cuda->set_transformation_epsilon(transformation_epsilon_);
-  vgicp_cuda->set_resolution(voxel_resolution_);
+  vgicp_cuda->set_max_iterations(this->max_iterations_);
+  vgicp_cuda->set_rotation_epsilon(this->rotation_epsilon_);
+  vgicp_cuda->set_transformation_epsilon(this->transformation_epsilon_);
+  vgicp_cuda->set_resolution(this->voxel_resolution_);
 }
 
 template<typename PointSource, typename PointTarget>
 FastVGICPCuda<PointSource, PointTarget>::~FastVGICPCuda() {}
-
-template<typename PointSource, typename PointTarget>
-void FastVGICPCuda<PointSource, PointTarget>::setRotationEpsilon(double eps) {
-  rotation_epsilon_ = eps;
-}
-
-template<typename PointSource, typename PointTarget>
-void FastVGICPCuda<PointSource, PointTarget>::setResolution(double resolution) {
-  voxel_resolution_ = resolution;
-  vgicp_cuda->set_resolution(voxel_resolution_);
-}
-
-template<typename PointSource, typename PointTarget>
-void FastVGICPCuda<PointSource, PointTarget>::setCorrespondenceRandomness(int k) {
-  k_correspondences_ = k;
-}
-
-template<typename PointSource, typename PointTarget>
-void FastVGICPCuda<PointSource, PointTarget>::setRegularizationMethod(RegularizationMethod method) {
-  regularization_method_ = method;
-}
 
 template<typename PointSource, typename PointTarget>
 void FastVGICPCuda<PointSource, PointTarget>::setNearesetNeighborSearchMethod(NearestNeighborMethod method) {
@@ -102,6 +78,9 @@ void FastVGICPCuda<PointSource, PointTarget>::setInputSource(const PointCloudSou
       break;
   }
   vgicp_cuda->calculate_source_covariances(regularization_method_);
+
+  std::vector<Eigen::Matrix3f, Eigen::aligned_allocator<Eigen::Matrix3f>> covs;
+  vgicp_cuda->get_source_covariances(covs);
 }
 
 template<typename PointSource, typename PointTarget>
@@ -131,6 +110,16 @@ void FastVGICPCuda<PointSource, PointTarget>::setInputTarget(const PointCloudTar
 }
 
 template<typename PointSource, typename PointTarget>
+void FastVGICPCuda<PointSource, PointTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
+  vgicp_cuda->set_max_iterations(this->max_iterations_);
+  vgicp_cuda->set_rotation_epsilon(this->rotation_epsilon_);
+  vgicp_cuda->set_transformation_epsilon(this->transformation_epsilon_);
+  vgicp_cuda->set_resolution(this->voxel_resolution_);
+
+  FastGICP<PointSource, PointTarget>::computeTransformation(output, guess);
+}
+
+template<typename PointSource, typename PointTarget>
 template<typename PointT>
 std::vector<int> FastVGICPCuda<PointSource, PointTarget>::find_neighbors_parallel_kdtree(int k, const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree) const {
   kdtree.setInputCloud(cloud);
@@ -149,19 +138,18 @@ std::vector<int> FastVGICPCuda<PointSource, PointTarget>::find_neighbors_paralle
 }
 
 template<typename PointSource, typename PointTarget>
-void FastVGICPCuda<PointSource, PointTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
-  Eigen::Isometry3f initial_guess(guess);
-  Eigen::Isometry3f estimated = Eigen::Isometry3f::Identity();
+void FastVGICPCuda<PointSource, PointTarget>::update_correspondences(const Eigen::Isometry3d& trans) {
+  vgicp_cuda->update_correspondences(trans);
+}
 
-  vgicp_cuda->set_max_iterations(max_iterations_);
-  vgicp_cuda->set_rotation_epsilon(rotation_epsilon_);
-  vgicp_cuda->set_transformation_epsilon(transformation_epsilon_);
-  vgicp_cuda->set_resolution(voxel_resolution_);
+template<typename PointSource, typename PointTarget>
+void FastVGICPCuda<PointSource, PointTarget>::update_mahalanobis(const Eigen::Isometry3d& trans) {
+  vgicp_cuda->update_mahalanobis(trans);
+}
 
-  converged_ = vgicp_cuda->optimize(initial_guess, estimated);
-
-  final_transformation_ = estimated.matrix();
-  pcl::transformPointCloud(*input_, output, final_transformation_);
+template<typename PointSource, typename PointTarget>
+double FastVGICPCuda<PointSource, PointTarget>::compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) const {
+  return vgicp_cuda->compute_error(trans, H, b);
 }
 
 }  // namespace fast_gicp

@@ -79,10 +79,16 @@ if(CUDA_FOUND)
 
   cuda_add_library(fast_vgicp_cuda
     src/fast_gicp/cuda/fast_vgicp_cuda.cu
+    src/fast_gicp/cuda/brute_force_knn.cu
+    src/fast_gicp/cuda/covariance_estimation.cu
+    src/fast_gicp/cuda/gaussian_voxelmap.cu
+    src/fast_gicp/cuda/find_voxel_correspondences.cu
+    src/fast_gicp/cuda/compute_derivatives.cu
+    src/fast_gicp/cuda/compute_mahalanobis.cu
+
   )
   target_include_directories(fast_vgicp_cuda PRIVATE
     include
-    thirdparty/Sophus
     thirdparty/Eigen
     thirdparty/nvbio
   )

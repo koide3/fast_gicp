@@ -121,6 +121,12 @@ void FastGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource&
   lm_lambda_ = -1.0;
   converged_ = false;
 
+  if(lm_debug_print_) {
+    std::cout << "********************************************" << std::endl;
+    std::cout << "***************** optimize *****************" << std::endl;
+    std::cout << "********************************************" << std::endl;
+  }
+
   for(int i = 0; i < max_iterations_ && !converged_; i++) {
     nr_iterations_ = i;
 
@@ -172,6 +178,10 @@ bool FastGICP<PointSource, PointTarget>::lm_step(Eigen::Isometry3d& x0, Eigen::I
     }
 
     if(rho < 0) {
+      if(is_converged(delta)) {
+        return true;
+      }
+
       lm_lambda_ = nu * lm_lambda_;
       nu = 2 * nu;
       continue;

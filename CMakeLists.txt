@@ -19,7 +19,7 @@ if (OPENMP_FOUND)
 endif()
 
 # if you want to use GPU-powered implementation, uncomment the following line
-find_package(CUDA)
+# find_package(CUDA)
 if(CUDA_FOUND)
   include_directories(${CUDA_INCLUDE_DIRS})
   link_directories(${CUDA_LIBRARY_DIRS})

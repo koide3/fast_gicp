@@ -71,7 +71,7 @@ protected:
   virtual double compute_error(const Eigen::Isometry3d& trans) override;
 
   template<typename PointT>
-  bool calculate_covariances(const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances);
+  bool calculate_covariances(const pcl::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances);
 
 protected:
   int num_threads_;
@@ -79,8 +79,8 @@ protected:
 
   RegularizationMethod regularization_method_;
 
-  pcl::shared_ptr<pcl::search::KdTree<PointSource>> source_kdtree_;
-  pcl::shared_ptr<pcl::search::KdTree<PointTarget>> target_kdtree_;
+  std::shared_ptr<pcl::search::KdTree<PointSource>> source_kdtree_;
+  std::shared_ptr<pcl::search::KdTree<PointTarget>> target_kdtree_;
 
   std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> source_covs_;
   std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> target_covs_;

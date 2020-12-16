@@ -133,10 +133,10 @@ public:
         switch(voxel_mode_) {
           case VoxelAccumulationMode::ADDITIVE:
           case VoxelAccumulationMode::ADDITIVE_WEIGHTED:
-            voxel = std::make_shared<AdditiveGaussianVoxel>();
+            voxel = std::shared_ptr<AdditiveGaussianVoxel>(new AdditiveGaussianVoxel);
             break;
           case VoxelAccumulationMode::MULTIPLICATIVE:
-            voxel = std::make_shared<MultiplicativeGaussianVoxel>();
+            voxel = std::shared_ptr<MultiplicativeGaussianVoxel>(new MultiplicativeGaussianVoxel);
             break;
         }
         found = voxels_.insert(found, std::make_pair(coord, voxel));

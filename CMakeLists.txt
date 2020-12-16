@@ -1,14 +1,16 @@
 cmake_minimum_required(VERSION 3.10.0)
 project(fast_gicp)
 
+option(BUILD_apps "Build application programs" ON)
+option(BUILD_test "Build test programs" OFF)
+
 add_definitions(-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2)
 set(CMAKE_C_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
 set(CMAKE_CXX_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
 
 set(CMAKE_BUILD_TYPE "Release")
 
-find_package(GTest)
-find_package(catkin)
+# find_package(catkin)
 
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -55,20 +57,24 @@ target_include_directories(fast_gicp PUBLIC
   ${EIGEN3_INCLUDE_DIR}
 )
 
-add_executable(gicp_align src/align.cpp)
-add_dependencies(gicp_align fast_gicp)
-target_link_libraries(gicp_align
-  ${PCL_LIBRARIES}
-  fast_gicp
-)
+### APPS ###
+if(BUILD_apps)
+  add_executable(gicp_align src/align.cpp)
+  add_dependencies(gicp_align fast_gicp)
+  target_link_libraries(gicp_align
+    ${PCL_LIBRARIES}
+    fast_gicp
+  )
 
-add_executable(gicp_kitti src/kitti.cpp)
-add_dependencies(gicp_kitti fast_gicp)
-target_link_libraries(gicp_kitti
-  ${PCL_LIBRARIES}
-  fast_gicp
-)
+  add_executable(gicp_kitti src/kitti.cpp)
+  add_dependencies(gicp_kitti fast_gicp)
+  target_link_libraries(gicp_kitti
+    ${PCL_LIBRARIES}
+    fast_gicp
+  )
+endif()
 
+### CUDA ###
 if(CUDA_FOUND)
   set(CUDA_NVCC_FLAGS "--expt-relaxed-constexpr")
   add_definitions(-DUSE_VGICP_CUDA)
@@ -100,7 +106,10 @@ if(CUDA_FOUND)
   add_dependencies(fast_gicp fast_vgicp_cuda)
 endif()
 
-if(GTEST_FOUND)
+### TEST ###
+if(BUILD_test)
+  find_package(GTest REQUIRED)
+
   add_executable(gicp_test src/test/gicp_test.cpp)
   add_dependencies(gicp_test fast_gicp)
   target_link_libraries(gicp_test ${GTEST_LIBRARIES} ${PCL_LIBRARIES} fast_gicp)

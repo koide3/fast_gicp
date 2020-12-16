@@ -67,7 +67,7 @@ void FastGICPMultiPoints<PointSource, PointTarget>::setRegularizationMethod(Regu
 template<typename PointSource, typename PointTarget>
 void FastGICPMultiPoints<PointSource, PointTarget>::setInputSource(const PointCloudSourceConstPtr& cloud) {
   pcl::Registration<PointSource, PointTarget, Scalar>::setInputSource(cloud);
-  calculate_covariances(cloud, source_kdtree, source_covs);
+  calculate_covariances(*cloud, source_kdtree, source_covs);
 }
 
 template<typename PointSource, typename PointTarget>
@@ -145,7 +145,7 @@ void FastGICPMultiPoints<PointSource, PointTarget>::update_correspondences(const
     target_kdtree.radiusSearch(pt, neighbor_search_radius_, k_indices, k_sq_dists);
 
     if(k_indices.empty()) {
-    //  target_kdtree.nearestKSearch(pt, 1, k_indices, k_sq_dists);
+      //  target_kdtree.nearestKSearch(pt, 1, k_indices, k_sq_dists);
     }
 
     correspondences[i] = k_indices;
@@ -164,7 +164,6 @@ Eigen::VectorXf FastGICPMultiPoints<PointSource, PointTarget>::loss_ls(const Eig
   std::vector<Eigen::Matrix<float, 3, 6, Eigen::RowMajor>, Eigen::aligned_allocator<Eigen::Matrix<float, 3, 6, Eigen::RowMajor>>> Js(input_->size());
 
   std::atomic_int count(0);
-
 
 #pragma omp parallel for num_threads(num_threads_)
   for(int i = 0; i < correspondences.size(); i++) {

@@ -37,8 +37,7 @@ public:
   using PointCloudTargetPtr = typename PointCloudTarget::Ptr;
   using PointCloudTargetConstPtr = typename PointCloudTarget::ConstPtr;
 
-  using Ptr = boost::shared_ptr<FastVGICPCuda<PointSource, PointTarget>>;
-
+protected:
   using pcl::Registration<PointSource, PointTarget, Scalar>::input_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::target_;
 
@@ -46,6 +45,7 @@ public:
   using FastVGICP<PointSource, PointTarget>::voxel_resolution_;
   using FastVGICP<PointSource, PointTarget>::regularization_method_;
 
+public:
   FastVGICPCuda();
   virtual ~FastVGICPCuda() override;
 

@@ -20,9 +20,7 @@
 
 class KittiLoader {
 public:
-  KittiLoader(const std::string& dataset_path)
-  : dataset_path(dataset_path)
-  {
+  KittiLoader(const std::string& dataset_path) : dataset_path(dataset_path) {
     for(num_frames = 0;; num_frames++) {
       std::string filename = (boost::format("%s/%06d.bin") % dataset_path % num_frames).str();
       if(!boost::filesystem::exists(filename)) {
@@ -36,7 +34,9 @@ public:
   }
   ~KittiLoader() {}
 
-  size_t size() const { return num_frames; }
+  size_t size() const {
+    return num_frames;
+  }
 
   pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud(size_t i) const {
     std::string filename = (boost::format("%s/%06d.bin") % dataset_path % i).str();
@@ -69,7 +69,6 @@ private:
   std::string dataset_path;
 };
 
-
 int main(int argc, char** argv) {
   if(argc < 2) {
     std::cout << "usage: gicp_kitti /your/kitti/path/sequences/00/velodyne" << std::endl;
@@ -92,7 +91,7 @@ int main(int argc, char** argv) {
 
   // set initial frame as target
   voxelgrid.setInputCloud(kitti.cloud(0));
-  auto target = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+  auto target = pcl::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
   voxelgrid.filter(*target);
   gicp.setInputTarget(target);
 
@@ -101,7 +100,7 @@ int main(int argc, char** argv) {
   poses[0].setIdentity();
 
   // trajectory for visualization
-  auto trajectory = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+  auto trajectory = pcl::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
   trajectory->push_back(pcl::PointXYZ(0.0f, 0.0f, 0.0f));
 
   pcl::visualization::PCLVisualizer vis;
@@ -111,15 +110,15 @@ int main(int argc, char** argv) {
   boost::circular_buffer<std::chrono::high_resolution_clock::time_point> stamps(30);
   stamps.push_back(std::chrono::high_resolution_clock::now());
 
-  for(int i=1; i<kitti.size(); i++) {
+  for(int i = 1; i < kitti.size(); i++) {
     // set the current frame as source
     voxelgrid.setInputCloud(kitti.cloud(i));
-    auto source = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+    auto source = pcl::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
     voxelgrid.filter(*source);
     gicp.setInputSource(source);
 
     // align and swap source and target cloud for next registration
-    auto aligned = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+    auto aligned = pcl::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
     gicp.align(*aligned);
     gicp.swapSourceAndTarget();
 
@@ -138,9 +137,9 @@ int main(int argc, char** argv) {
 
   // save the estimated poses
   std::ofstream ofs("/tmp/traj.txt");
-  for(const auto& pose: poses) {
-    for(int i=0; i<3; i++) {
-      for(int j=0; j<4; j++) {
+  for(const auto& pose : poses) {
+    for(int i = 0; i < 3; i++) {
+      for(int j = 0; j < 4; j++) {
         if(i || j) {
           ofs << " ";
         }

@@ -239,7 +239,7 @@ double FastGICP<PointSource, PointTarget>::compute_error(const Eigen::Isometry3d
 
 template<typename PointSource, typename PointTarget>
 template<typename PointT>
-bool FastGICP<PointSource, PointTarget>::calculate_covariances(const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances) {
+bool FastGICP<PointSource, PointTarget>::calculate_covariances(const pcl::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances) {
   if(kdtree.getInputCloud() != cloud) {
     kdtree.setInputCloud(cloud);
   }

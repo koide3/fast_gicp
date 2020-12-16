@@ -39,10 +39,12 @@ public:
   virtual ~LsqRegistration();
 
   void setRotationEpsilon(double eps);
-
   void setInitialLambdaFactor(double init_lambda_factor);
-
   void setDebugPrint(bool lm_debug_print);
+
+  virtual void swapSourceAndTarget() {}
+  virtual void clearSource() {}
+  virtual void clearTarget() {}
 
 protected:
   virtual void computeTransformation(PointCloudSource& output, const Matrix4& guess) override;

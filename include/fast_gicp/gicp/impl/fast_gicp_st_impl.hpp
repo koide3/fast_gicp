@@ -26,8 +26,8 @@ void FastGICPSingleThread<PointSource, PointTarget>::computeTransformation(Point
 
 template<typename PointSource, typename PointTarget>
 void FastGICPSingleThread<PointSource, PointTarget>::update_correspondences(const Eigen::Isometry3d& x) {
-  assert(source_covs.size() == input_->size());
-  assert(target_covs.size() == target_->size());
+  assert(source_covs_.size() == input_->size());
+  assert(target_covs_.size() == target_->size());
 
   Eigen::Isometry3f trans = x.template cast<float>();
 

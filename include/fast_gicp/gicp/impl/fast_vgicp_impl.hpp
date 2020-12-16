@@ -47,6 +47,7 @@ void FastVGICP<PointSource, PointTarget>::swapSourceAndTarget() {
   input_.swap(target_);
   source_kdtree_.swap(target_kdtree_);
   source_covs_.swap(target_covs_);
+  voxelmap_.reset();
 }
 
 template<typename PointSource, typename PointTarget>
@@ -72,7 +73,7 @@ void FastVGICP<PointSource, PointTarget>::update_correspondences(const Eigen::Is
   auto offsets = neighbor_offsets(search_method_);
 
   std::vector<std::vector<std::pair<int, GaussianVoxel::Ptr>>> corrs(num_threads_);
-  for(auto& c: corrs) {
+  for(auto& c : corrs) {
     c.reserve((input_->size() * offsets.size()) / num_threads_);
   }
 

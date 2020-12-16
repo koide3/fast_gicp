@@ -41,23 +41,16 @@ public:
   virtual ~FastGICP() override;
 
   void setNumThreads(int n);
-
   void setCorrespondenceRandomness(int k);
-
   void setRegularizationMethod(RegularizationMethod method);
 
-  virtual void swapSourceAndTarget();
-
-  virtual void clearSource();
-
-  virtual void clearTarget();
+  virtual void swapSourceAndTarget() override;
+  virtual void clearSource() override;
+  virtual void clearTarget() override;
 
   virtual void setInputSource(const PointCloudSourceConstPtr& cloud) override;
-
   virtual void setSourceCovariances(const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs);
-
   virtual void setInputTarget(const PointCloudTargetConstPtr& cloud) override;
-
   virtual void setTargetCovariances(const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs);
 
   const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& getSourceCovariances() const {

@@ -1,7 +1,6 @@
 #ifndef FAST_GICP_FAST_GICP_IMPL_HPP
 #define FAST_GICP_FAST_GICP_IMPL_HPP
 
-#include <boost/format.hpp>
 #include <fast_gicp/so3/so3.hpp>
 
 namespace fast_gicp {
@@ -160,7 +159,7 @@ double FastGICP<PointSource, PointTarget>::linearize(const Eigen::Isometry3d& tr
   double sum_errors = 0.0;
   std::vector<Eigen::Matrix<double, 6, 6>, Eigen::aligned_allocator<Eigen::Matrix<double, 6, 6>>> Hs(num_threads_);
   std::vector<Eigen::Matrix<double, 6, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, 6, 1>>> bs(num_threads_);
-  for(int i=0; i<num_threads_; i++) {
+  for(int i = 0; i < num_threads_; i++) {
     Hs[i].setZero();
     bs[i].setZero();
   }

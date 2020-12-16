@@ -52,13 +52,10 @@ public:
   void setNearesetNeighborSearchMethod(NearestNeighborMethod method);
 
   virtual void swapSourceAndTarget() override;
-
   virtual void clearSource() override;
-
   virtual void clearTarget() override;
 
   virtual void setInputSource(const PointCloudSourceConstPtr& cloud) override;
-
   virtual void setInputTarget(const PointCloudTargetConstPtr& cloud) override;
 
 protected:

@@ -68,7 +68,7 @@ protected:
   virtual double compute_error(const Eigen::Isometry3d& trans) override;
 
   template<typename PointT>
-  std::vector<int> find_neighbors_parallel_kdtree(int k, const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud) const;
+  std::vector<int> find_neighbors_parallel_kdtree(int k, typename pcl::PointCloud<PointT>::ConstPtr cloud) const;
 
 private:
   NearestNeighborMethod neighbor_search_method_;

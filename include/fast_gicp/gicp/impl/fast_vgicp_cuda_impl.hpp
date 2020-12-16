@@ -67,7 +67,7 @@ void FastVGICPCuda<PointSource, PointTarget>::setInputSource(const PointCloudSou
   vgicp_cuda_->set_source_cloud(points);
   switch(neighbor_search_method_) {
     case NearestNeighborMethod::CPU_PARALLEL_KDTREE: {
-      std::vector<int> neighbors = find_neighbors_parallel_kdtree(k_correspondences_, cloud);
+      std::vector<int> neighbors = find_neighbors_parallel_kdtree<PointSource>(k_correspondences_, cloud);
       vgicp_cuda_->set_source_neighbors(k_correspondences_, neighbors);
     } break;
     case NearestNeighborMethod::GPU_BRUTEFORCE:
@@ -92,7 +92,7 @@ void FastVGICPCuda<PointSource, PointTarget>::setInputTarget(const PointCloudTar
   vgicp_cuda_->set_target_cloud(points);
   switch(neighbor_search_method_) {
     case NearestNeighborMethod::CPU_PARALLEL_KDTREE: {
-      std::vector<int> neighbors = find_neighbors_parallel_kdtree(k_correspondences_, cloud);
+      std::vector<int> neighbors = find_neighbors_parallel_kdtree<PointTarget>(k_correspondences_, cloud);
       vgicp_cuda_->set_target_neighbors(k_correspondences_, neighbors);
     } break;
     case NearestNeighborMethod::GPU_BRUTEFORCE:
@@ -112,7 +112,7 @@ void FastVGICPCuda<PointSource, PointTarget>::computeTransformation(PointCloudSo
 
 template<typename PointSource, typename PointTarget>
 template<typename PointT>
-std::vector<int> FastVGICPCuda<PointSource, PointTarget>::find_neighbors_parallel_kdtree(int k, const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud) const {
+std::vector<int> FastVGICPCuda<PointSource, PointTarget>::find_neighbors_parallel_kdtree(int k, typename pcl::PointCloud<PointT>::ConstPtr cloud) const {
   pcl::search::KdTree<PointT> kdtree;
   kdtree.setInputCloud(cloud);
   std::vector<int> neighbors(cloud->size() * k);

@@ -9,6 +9,8 @@ matrix:
   include:
     - name: "Focal Fossa Nightly PCL"
       env: ROS_DISTRO=focal
+    - name: "Focal Fossa Nightly PCL with CUDA"
+      env: ROS_DISTRO=focal_cuda
     - name: "Focal Fossa noetic"
       env: ROS_DISTRO=noetic
     - name: "Focal Fossa noetic_llvm"

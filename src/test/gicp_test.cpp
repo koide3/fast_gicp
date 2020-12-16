@@ -109,7 +109,6 @@ public:
       vgicp->setNumThreads(num_threads);
       return vgicp;
     } else if(method == "VGICP_CUDA") {
-      return nullptr;
 #ifdef USE_VGICP_CUDA
       auto vgicp = pcl::make_shared<fast_gicp::FastVGICPCuda<pcl::PointXYZ, pcl::PointXYZ>>();
       return vgicp;

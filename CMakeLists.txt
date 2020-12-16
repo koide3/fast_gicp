@@ -8,9 +8,11 @@ set(CMAKE_CXX_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
 set(CMAKE_BUILD_TYPE "Release")
 
 find_package(catkin)
-
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
+
+# for test
+find_package(GTest REQUIRED)
 
 find_package(OpenMP)
 if (OPENMP_FOUND)
@@ -59,7 +61,7 @@ target_include_directories(fast_gicp PUBLIC
 )
 
 add_executable(gicp_align src/align.cpp)
-add_dependencies(gicp_align ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(gicp_align fast_gicp)
 target_link_libraries(gicp_align
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
@@ -67,12 +69,18 @@ target_link_libraries(gicp_align
 )
 
 add_executable(gicp_kitti src/kitti.cpp)
-add_dependencies(gicp_kitti ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(gicp_kitti fast_gicp)
 target_link_libraries(gicp_kitti
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
   fast_gicp
 )
+
+if(GTEST_FOUND)
+  add_executable(gicp_test src/test/gicp_test.cpp)
+  target_link_libraries(gicp_test ${GTEST_BOTH_LIBRARIES} ${PCL_LIBRARIES} fast_gicp)
+  gtest_add_tests(TARGET gicp_test WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+endif()
 
 if(CUDA_FOUND)
   set(CUDA_NVCC_FLAGS "--expt-relaxed-constexpr")

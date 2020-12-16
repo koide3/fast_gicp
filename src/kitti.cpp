@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
 
   // set initial frame as target
   voxelgrid.setInputCloud(kitti.cloud(0));
-  auto target = pcl::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+  pcl::PointCloud<pcl::PointXYZ>::Ptr target(new pcl::PointCloud<pcl::PointXYZ>);
   voxelgrid.filter(*target);
   gicp.setInputTarget(target);
 
@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
   poses[0].setIdentity();
 
   // trajectory for visualization
-  auto trajectory = pcl::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+  pcl::PointCloud<pcl::PointXYZ>::Ptr trajectory(new pcl::PointCloud<pcl::PointXYZ>);
   trajectory->push_back(pcl::PointXYZ(0.0f, 0.0f, 0.0f));
 
   pcl::visualization::PCLVisualizer vis;
@@ -113,12 +113,12 @@ int main(int argc, char** argv) {
   for(int i = 1; i < kitti.size(); i++) {
     // set the current frame as source
     voxelgrid.setInputCloud(kitti.cloud(i));
-    auto source = pcl::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+    pcl::PointCloud<pcl::PointXYZ>::Ptr source(new pcl::PointCloud<pcl::PointXYZ>);
     voxelgrid.filter(*source);
     gicp.setInputSource(source);
 
     // align and swap source and target cloud for next registration
-    auto aligned = pcl::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+    pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>);
     gicp.align(*aligned);
     gicp.swapSourceAndTarget();
 

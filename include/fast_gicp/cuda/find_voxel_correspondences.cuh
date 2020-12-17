@@ -8,8 +8,11 @@
 #include <fast_gicp/cuda/gaussian_voxelmap.cuh>
 
 namespace fast_gicp {
+  namespace cuda {
 
 void find_voxel_correspondences(const thrust::device_vector<Eigen::Vector3f>& src_points, const GaussianVoxelMap& voxelmap, const Eigen::Isometry3f& x, thrust::device_vector<int>& correspondences);
+
+  }
 }
 
 #endif

@@ -1,20 +1,24 @@
 sudo: required
 language: generic
-dist: xenial
+dist: focal
 
 services:
   - docker
 
 matrix:
   include:
-    - name: "Bionic melodic"
-      env: ROS_DISTRO=melodic
-    - name: "Bionic melodic_llvm"
-      env: ROS_DISTRO=melodic_llvm
+    - name: "Focal Fossa Nightly PCL"
+      env: ROS_DISTRO=focal
+    - name: "Focal Fossa Nightly PCL with CUDA"
+      env: ROS_DISTRO=focal_cuda
     - name: "Focal Fossa noetic"
       env: ROS_DISTRO=noetic
     - name: "Focal Fossa noetic_llvm"
       env: ROS_DISTRO=noetic_llvm
+    - name: "Bionic melodic_llvm"
+      env: ROS_DISTRO=melodic_llvm
+    - name: "Bionic melodic"
+      env: ROS_DISTRO=melodic
 
 script:
   - docker build -f ./docker/$ROS_DISTRO/Dockerfile .

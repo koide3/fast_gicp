@@ -2,9 +2,9 @@ FROM ros:melodic
 
 RUN apt-get update && apt-get install --no-install-recommends -y \
     && apt-get install --no-install-recommends -y wget nano build-essential \
-                                                  libomp-dev clang lld ros-melodic-pcl-ros \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+    libgtest-dev libomp-dev clang lld ros-melodic-pcl-ros \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN update-alternatives --install /usr/bin/ld ld /usr/bin/ld.lld 50
 

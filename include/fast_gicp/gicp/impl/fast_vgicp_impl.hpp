@@ -45,12 +45,11 @@ void FastVGICP<PointSource, PointTarget>::setVoxelAccumulationMode(VoxelAccumula
 template<typename PointSource, typename PointTarget>
 void FastVGICP<PointSource, PointTarget>::swapSourceAndTarget() {
   input_.swap(target_);
-  source_kdtree.swap(target_kdtree);
-  source_covs.swap(target_covs);
-
-  if(target_) {
-    create_voxelmap(target_);
-  }
+  source_kdtree_.swap(target_kdtree_);
+  source_covs_.swap(target_covs_);
+  voxelmap_.reset();
+  voxel_correspondences_.clear();
+  voxel_mahalanobis_.clear();
 }
 
 template<typename PointSource, typename PointTarget>
@@ -60,147 +59,70 @@ void FastVGICP<PointSource, PointTarget>::setInputTarget(const PointCloudTargetC
   }
 
   FastGICP<PointSource, PointTarget>::setInputTarget(cloud);
-  create_voxelmap(cloud);
+  voxelmap_.reset();
 }
 
 template<typename PointSource, typename PointTarget>
-void FastVGICP<PointSource, PointTarget>::create_voxelmap(const PointCloudTargetConstPtr& cloud) {
-  voxels.clear();
-  for(int i = 0; i < cloud->size(); i++) {
-    Eigen::Vector3i coord = voxel_coord(cloud->at(i).getVector4fMap().template cast<double>());
+void FastVGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
+  voxelmap_.reset();
 
-    auto found = voxels.find(coord);
-    if(found == voxels.end()) {
-      GaussianVoxel::Ptr voxel;
-      switch(voxel_mode_) {
-        case VoxelAccumulationMode::ADDITIVE:
-        case VoxelAccumulationMode::ADDITIVE_WEIGHTED:
-          voxel = std::make_shared<AdditiveGaussianVoxel>();
-          break;
-        case VoxelAccumulationMode::MULTIPLICATIVE:
-          voxel = std::make_shared<MultiplicativeGaussianVoxel>();
-          break;
-      }
-      found = voxels.insert(found, std::make_pair(coord, voxel));
-    }
-
-    auto& voxel = found->second;
-    voxel->append(cloud->at(i).getVector4fMap().template cast<double>(), target_covs[i]);
-  }
-
-  for(auto& voxel : voxels) {
-    voxel.second->finalize();
-  }
-}
-
-template<typename PointSource, typename PointTarget>
-std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> FastVGICP<PointSource, PointTarget>::neighbor_offsets() const {
-  switch(search_method_) {
-    // clang-format off
-    default:
-      std::cerr << "here must not be reached" << std::endl;
-      abort();
-    case NeighborSearchMethod::DIRECT1:
-      return std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>>{
-        Eigen::Vector3i(0, 0, 0)
-      };
-    case NeighborSearchMethod::DIRECT7:
-      return std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>>{
-        Eigen::Vector3i(0, 0, 0),
-        Eigen::Vector3i(1, 0, 0),
-        Eigen::Vector3i(-1, 0, 0),
-        Eigen::Vector3i(0, 1, 0),
-        Eigen::Vector3i(0, -1, 0),
-        Eigen::Vector3i(0, 0, 1),
-        Eigen::Vector3i(0, 0, -1)
-      };
-    // clang-format on
-  }
-
-  std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> offsets27;
-  for(int i = 0; i < 3; i++) {
-    for(int j = 0; j < 3; j++) {
-      for(int k = 0; k < 3; k++) {
-        offsets27.push_back(Eigen::Vector3i(i, j, k));
-      }
-    }
-  }
-  return offsets27;
-}
-
-template<typename PointSource, typename PointTarget>
-Eigen::Vector3i FastVGICP<PointSource, PointTarget>::voxel_coord(const Eigen::Vector4d& x) const {
-  return (x.array() / voxel_resolution_ - 0.5).floor().template cast<int>().template head<3>();
-}
-
-template<typename PointSource, typename PointTarget>
-Eigen::Vector4d FastVGICP<PointSource, PointTarget>::voxel_origin(const Eigen::Vector3i& coord) const {
-  Eigen::Vector3d origin = (coord.template cast<double>().array() + 0.5) * voxel_resolution_;
-  return Eigen::Vector4d(origin[0], origin[1], origin[2], 1.0f);
-}
-
-template<typename PointSource, typename PointTarget>
-GaussianVoxel::Ptr FastVGICP<PointSource, PointTarget>::lookup_voxel(const Eigen::Vector3i& x) const {
-  auto found = voxels.find(x);
-  if(found == voxels.end()) {
-    return nullptr;
-  }
-
-  return found->second;
+  FastGICP<PointSource, PointTarget>::computeTransformation(output, guess);
 }
 
 template<typename PointSource, typename PointTarget>
 void FastVGICP<PointSource, PointTarget>::update_correspondences(const Eigen::Isometry3d& trans) {
-  voxel_correspondences.clear();
-  auto offsets = neighbor_offsets();
+  voxel_correspondences_.clear();
+  auto offsets = neighbor_offsets(search_method_);
 
   std::vector<std::vector<std::pair<int, GaussianVoxel::Ptr>>> corrs(num_threads_);
-  for(auto& c: corrs) {
+  for(auto& c : corrs) {
     c.reserve((input_->size() * offsets.size()) / num_threads_);
   }
 
-#pragma omp parallel for num_threads(num_threads_)
+#pragma omp parallel for num_threads(num_threads_) schedule(guided, 8)
   for(int i = 0; i < input_->size(); i++) {
     const Eigen::Vector4d mean_A = input_->at(i).getVector4fMap().template cast<double>();
     Eigen::Vector4d transed_mean_A = trans * mean_A;
-    Eigen::Vector3i coord = voxel_coord(transed_mean_A);
+    Eigen::Vector3i coord = voxelmap_->voxel_coord(transed_mean_A);
 
     for(const auto& offset : offsets) {
-      auto voxel = lookup_voxel(coord + offset);
+      auto voxel = voxelmap_->lookup_voxel(coord + offset);
       if(voxel != nullptr) {
         corrs[omp_get_thread_num()].push_back(std::make_pair(i, voxel));
       }
     }
   }
 
-  voxel_correspondences.reserve(input_->size() * offsets.size());
+  voxel_correspondences_.reserve(input_->size() * offsets.size());
   for(const auto& c : corrs) {
-    voxel_correspondences.insert(voxel_correspondences.end(), c.begin(), c.end());
+    voxel_correspondences_.insert(voxel_correspondences_.end(), c.begin(), c.end());
   }
-}
 
-template<typename PointSource, typename PointTarget>
-void FastVGICP<PointSource, PointTarget>::update_mahalanobis(const Eigen::Isometry3d& trans) {
-  assert(source_covs.size() == input_->size());
+  // precompute combined covariances
+  voxel_mahalanobis_.resize(voxel_correspondences_.size());
 
-  Eigen::Matrix4d trans_matrix = trans.matrix();
-  voxel_mahalanobis.resize(voxel_correspondences.size());
-
-#pragma omp parallel for num_threads(num_threads_)
-  for(int i = 0; i < voxel_correspondences.size(); i++) {
-    const auto& corr = voxel_correspondences[i];
-    const auto& cov_A = source_covs[corr.first];
+#pragma omp parallel for num_threads(num_threads_) schedule(guided, 8)
+  for(int i = 0; i < voxel_correspondences_.size(); i++) {
+    const auto& corr = voxel_correspondences_[i];
+    const auto& cov_A = source_covs_[corr.first];
     const auto& cov_B = corr.second->cov;
 
-    Eigen::Matrix4d RCR = cov_B + trans_matrix * cov_A * trans_matrix.transpose();
+    Eigen::Matrix4d RCR = cov_B + trans.matrix() * cov_A * trans.matrix().transpose();
     RCR(3, 3) = 1.0;
 
-    voxel_mahalanobis[i] = RCR.inverse();
+    voxel_mahalanobis_[i] = RCR.inverse();
   }
 }
 
 template<typename PointSource, typename PointTarget>
-double FastVGICP<PointSource, PointTarget>::compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) const {
+double FastVGICP<PointSource, PointTarget>::linearize(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) {
+  if(voxelmap_ == nullptr) {
+    voxelmap_.reset(new GaussianVoxelMap<PointTarget>(voxel_resolution_, voxel_mode_));
+    voxelmap_->create_voxelmap(*target_, target_covs_);
+  }
+
+  update_correspondences(trans);
+
   double sum_errors = 0.0;
   std::vector<Eigen::Matrix<double, 6, 6>, Eigen::aligned_allocator<Eigen::Matrix<double, 6, 6>>> Hs(num_threads_);
   std::vector<Eigen::Matrix<double, 6, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, 6, 1>>> bs(num_threads_);
@@ -209,19 +131,19 @@ double FastVGICP<PointSource, PointTarget>::compute_error(const Eigen::Isometry3
     bs[i].setZero();
   }
 
-#pragma omp parallel for num_threads(num_threads_) reduction(+ : sum_errors)
-  for(int i = 0; i < voxel_correspondences.size(); i++) {
-    const auto& corr = voxel_correspondences[i];
+#pragma omp parallel for num_threads(num_threads_) reduction(+ : sum_errors) schedule(guided, 8)
+  for(int i = 0; i < voxel_correspondences_.size(); i++) {
+    const auto& corr = voxel_correspondences_[i];
     auto target_voxel = corr.second;
 
     const Eigen::Vector4d mean_A = input_->at(corr.first).getVector4fMap().template cast<double>();
-    const auto& cov_A = source_covs[corr.first];
+    const auto& cov_A = source_covs_[corr.first];
 
     const Eigen::Vector4d mean_B = corr.second->mean;
     const auto& cov_B = corr.second->cov;
 
     const Eigen::Vector4d transed_mean_A = trans * mean_A;
-    const Eigen::Vector4d error = std::sqrt(target_voxel->num_points) * voxel_mahalanobis[i] * (mean_B - transed_mean_A);
+    const Eigen::Vector4d error = std::sqrt(target_voxel->num_points) * voxel_mahalanobis_[i] * (mean_B - transed_mean_A);
 
     sum_errors += error.head<3>().squaredNorm();
 
@@ -233,7 +155,7 @@ double FastVGICP<PointSource, PointTarget>::compute_error(const Eigen::Isometry3
     dtdx0.block<3, 3>(0, 0) = skewd(transed_mean_A.head<3>());
     dtdx0.block<3, 3>(0, 3) = -Eigen::Matrix3d::Identity();
 
-    Eigen::Matrix<double, 4, 6> jlossexp = std::sqrt(target_voxel->num_points) * voxel_mahalanobis[i] * dtdx0;
+    Eigen::Matrix<double, 4, 6> jlossexp = std::sqrt(target_voxel->num_points) * voxel_mahalanobis_[i] * dtdx0;
 
     Eigen::Matrix<double, 6, 6> Hi = jlossexp.transpose() * jlossexp;
     Eigen::Matrix<double, 6, 1> bi = jlossexp.transpose() * error;
@@ -250,6 +172,29 @@ double FastVGICP<PointSource, PointTarget>::compute_error(const Eigen::Isometry3
       (*H) += Hs[i];
       (*b) += bs[i];
     }
+  }
+
+  return sum_errors;
+}
+
+template<typename PointSource, typename PointTarget>
+double FastVGICP<PointSource, PointTarget>::compute_error(const Eigen::Isometry3d& trans) {
+  double sum_errors = 0.0;
+#pragma omp parallel for num_threads(num_threads_) reduction(+ : sum_errors)
+  for(int i = 0; i < voxel_correspondences_.size(); i++) {
+    const auto& corr = voxel_correspondences_[i];
+    auto target_voxel = corr.second;
+
+    const Eigen::Vector4d mean_A = input_->at(corr.first).getVector4fMap().template cast<double>();
+    const auto& cov_A = source_covs_[corr.first];
+
+    const Eigen::Vector4d mean_B = corr.second->mean;
+    const auto& cov_B = corr.second->cov;
+
+    const Eigen::Vector4d transed_mean_A = trans * mean_A;
+    const Eigen::Vector4d error = std::sqrt(target_voxel->num_points) * voxel_mahalanobis_[i] * (mean_B - transed_mean_A);
+
+    sum_errors += error.head<3>().squaredNorm();
   }
 
   return sum_errors;

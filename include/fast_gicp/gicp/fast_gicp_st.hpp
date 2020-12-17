@@ -30,12 +30,12 @@ protected:
   using pcl::Registration<PointSource, PointTarget, Scalar>::input_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::target_;
 
-  using FastGICP<PointSource, PointTarget>::target_kdtree;
-  using FastGICP<PointSource, PointTarget>::correspondences;
-  using FastGICP<PointSource, PointTarget>::sq_distances;
-  using FastGICP<PointSource, PointTarget>::source_covs;
-  using FastGICP<PointSource, PointTarget>::target_covs;
-  using FastGICP<PointSource, PointTarget>::mahalanobis;
+  using FastGICP<PointSource, PointTarget>::target_kdtree_;
+  using FastGICP<PointSource, PointTarget>::correspondences_;
+  using FastGICP<PointSource, PointTarget>::sq_distances_;
+  using FastGICP<PointSource, PointTarget>::source_covs_;
+  using FastGICP<PointSource, PointTarget>::target_covs_;
+  using FastGICP<PointSource, PointTarget>::mahalanobis_;
 
 public:
   FastGICPSingleThread();
@@ -47,13 +47,13 @@ protected:
 private:
   virtual void update_correspondences(const Eigen::Isometry3d& trans) override;
 
-  virtual void update_mahalanobis(const Eigen::Isometry3d& trans) override;
+  virtual double linearize(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H = nullptr, Eigen::Matrix<double, 6, 1>* b = nullptr) override;
 
-  virtual double compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H = nullptr, Eigen::Matrix<double, 6, 1>* b = nullptr) const override;
+  virtual double compute_error(const Eigen::Isometry3d& trans) override;
 
 private:
-  std::vector<float> second_sq_distances;
-  std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f>> anchors;
+  std::vector<float> second_sq_distances_;
+  std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f>> anchors_;
 };
 }  // namespace fast_gicp
 

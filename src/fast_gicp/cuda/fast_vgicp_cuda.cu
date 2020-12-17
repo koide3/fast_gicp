@@ -12,16 +12,13 @@
 #include <fast_gicp/cuda/find_voxel_correspondences.cuh>
 
 namespace fast_gicp {
+namespace cuda {
 
 FastVGICPCudaCore::FastVGICPCudaCore() {
   // warming up GPU
   cudaDeviceSynchronize();
 
   resolution = 1.0;
-  max_iterations = 64;
-  rotation_epsilon = 2e-3;
-  transformation_epsilon = 5e-4;
-
   linearized_x.setIdentity();
 }
 FastVGICPCudaCore ::~FastVGICPCudaCore() {}
@@ -30,28 +27,10 @@ void FastVGICPCudaCore::set_resolution(double resolution) {
   this->resolution = resolution;
 }
 
-void FastVGICPCudaCore::set_max_iterations(int itr) {
-  this->max_iterations = itr;
-}
-
-void FastVGICPCudaCore::set_rotation_epsilon(double eps) {
-  this->rotation_epsilon = eps;
-}
-
-void FastVGICPCudaCore::set_transformation_epsilon(double eps) {
-  this->transformation_epsilon = eps;
-}
-
 void FastVGICPCudaCore::swap_source_and_target() {
-  if(source_points && target_points) {
-    source_points.swap(target_points);
-  }
-  if(source_neighbors && target_neighbors) {
-    source_neighbors.swap(target_neighbors);
-  }
-  if(source_covariances && target_covariances) {
-    source_covariances.swap(target_covariances);
-  }
+  source_points.swap(target_points);
+  source_neighbors.swap(target_neighbors);
+  source_covariances.swap(target_covariances);
 
   if(!target_points || !target_covariances) {
     return;
@@ -104,7 +83,7 @@ void FastVGICPCudaCore::set_target_neighbors(int k, const std::vector<int>& neig
 }
 
 struct untie_pair_second {
-  __device__ int operator() (thrust::pair<float, int>& p) const {
+  __device__ int operator()(thrust::pair<float, int>& p) const {
     return p.second;
   }
 };
@@ -209,10 +188,9 @@ void FastVGICPCudaCore::update_correspondences(const Eigen::Isometry3d& trans) {
   find_voxel_correspondences(*source_points, *voxelmap, linearized_x, *voxel_correspondences);
 }
 
-void FastVGICPCudaCore::update_mahalanobis(const Eigen::Isometry3d& trans) {}
-
 double FastVGICPCudaCore::compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) const {
   return compute_derivatives(*source_points, *source_covariances, *voxelmap, *voxel_correspondences, linearized_x, trans.cast<float>(), H, b);
 }
 
+}  // namespace cuda
 }  // namespace fast_gicp

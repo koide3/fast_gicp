@@ -2,6 +2,7 @@
 #define FAST_GICP_CUDA_VECTOR3_HASH_CUH
 
 namespace fast_gicp {
+  namespace cuda {
 
 // taken from boost/hash.hpp
 __host__ __device__  inline void hash_combine(uint64_t& h, uint64_t k) {
@@ -18,6 +19,10 @@ __host__ __device__  inline void hash_combine(uint64_t& h, uint64_t k) {
   h += 0xe6546b64;
 }
 
+inline __host__ __device__ bool equal(const Eigen::Vector3i& lhs, const Eigen::Vector3i& rhs) {
+  return lhs[0] == rhs[0] && lhs[1] == rhs[1] && lhs[2] == rhs[2];
+}
+
 // compute vector3i hash
 __host__ __device__ inline uint64_t vector3i_hash(const Eigen::Vector3i& x) {
   uint64_t seed = 0;
@@ -32,6 +37,7 @@ __host__ __device__ inline Eigen::Vector3i calc_voxel_coord(const Eigen::Vector3
   return coord;
 }
 
+  }
 }  // namespace fast_gicp
 
 #endif

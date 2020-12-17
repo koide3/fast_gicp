@@ -18,6 +18,7 @@ class device_vector;
 }  // namespace thrust
 
 namespace fast_gicp {
+namespace cuda {
 
 class GaussianVoxelMap;
 
@@ -32,9 +33,6 @@ public:
   ~FastVGICPCudaCore();
 
   void set_resolution(double resolution);
-  void set_max_iterations(int itr);
-  void set_rotation_epsilon(double eps);
-  void set_transformation_epsilon(double eps);
 
   void swap_source_and_target();
   void set_source_cloud(const std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>>& cloud);
@@ -59,16 +57,11 @@ public:
   void create_target_voxelmap();
 
   void update_correspondences(const Eigen::Isometry3d& trans);
-  void update_mahalanobis(const Eigen::Isometry3d& trans);
 
   double compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) const;
 
 public:
   double resolution;
-
-  int max_iterations;
-  double rotation_epsilon;
-  double transformation_epsilon;
 
   std::unique_ptr<Points> source_points;
   std::unique_ptr<Points> target_points;
@@ -85,6 +78,7 @@ public:
   std::unique_ptr<Indices> voxel_correspondences;
 };
 
+}  // namespace cuda
 }  // namespace fast_gicp
 
 #endif

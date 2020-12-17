@@ -20,21 +20,24 @@ FastGICPSingleThread<PointSource, PointTarget>::~FastGICPSingleThread() {}
 
 template<typename PointSource, typename PointTarget>
 void FastGICPSingleThread<PointSource, PointTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
-  anchors.clear();
-
+  anchors_.clear();
   FastGICP<PointSource, PointTarget>::computeTransformation(output, guess);
 }
 
 template<typename PointSource, typename PointTarget>
 void FastGICPSingleThread<PointSource, PointTarget>::update_correspondences(const Eigen::Isometry3d& x) {
+  assert(source_covs_.size() == input_->size());
+  assert(target_covs_.size() == target_->size());
+
   Eigen::Isometry3f trans = x.template cast<float>();
 
-  bool is_first = anchors.empty();
+  bool is_first = anchors_.empty();
 
-  correspondences.resize(input_->size());
-  sq_distances.resize(input_->size());
-  second_sq_distances.resize(input_->size());
-  anchors.resize(input_->size());
+  correspondences_.resize(input_->size());
+  sq_distances_.resize(input_->size());
+  second_sq_distances_.resize(input_->size());
+  anchors_.resize(input_->size());
+  mahalanobis_.resize(input_->size());
 
   std::vector<int> k_indices;
   std::vector<float> k_sq_dists;
@@ -44,71 +47,60 @@ void FastGICPSingleThread<PointSource, PointTarget>::update_correspondences(cons
     pt.getVector4fMap() = trans * input_->at(i).getVector4fMap();
 
     if(!is_first) {
-      double d = (pt.getVector4fMap() - anchors[i]).norm();
-      double max_first = std::sqrt(sq_distances[i]) + d;
-      double min_second = std::sqrt(second_sq_distances[i]) - d;
+      double d = (pt.getVector4fMap() - anchors_[i]).norm();
+      double max_first = std::sqrt(sq_distances_[i]) + d;
+      double min_second = std::sqrt(second_sq_distances_[i]) - d;
 
       if(max_first < min_second) {
         continue;
       }
     }
 
-    target_kdtree->nearestKSearch(pt, 2, k_indices, k_sq_dists);
+    target_kdtree_->nearestKSearch(pt, 2, k_indices, k_sq_dists);
 
-    correspondences[i] = k_indices[0];
-    sq_distances[i] = k_sq_dists[0];
-    second_sq_distances[i] = k_sq_dists[1];
-    anchors[i] = pt.getVector4fMap();
-  }
-}
+    correspondences_[i] = k_indices[0];
+    sq_distances_[i] = k_sq_dists[0];
+    second_sq_distances_[i] = k_sq_dists[1];
+    anchors_[i] = pt.getVector4fMap();
 
-template<typename PointSource, typename PointTarget>
-void FastGICPSingleThread<PointSource, PointTarget>::update_mahalanobis(const Eigen::Isometry3d& trans) {
-  assert(source_covs.size() == input_->size());
-  assert(target_covs.size() == target_->size());
-  assert(correspondences.size() == input_->size());
-
-  Eigen::Matrix4d trans_matrix = trans.matrix();
-  mahalanobis.resize(input_->size());
-
-  for(int i = 0; i < input_->size(); i++) {
-    int target_index = correspondences[i];
-    if(target_index < 0) {
+    if(correspondences_[i] < 0) {
       continue;
     }
 
-    const auto& cov_A = source_covs[i];
-    const auto& cov_B = target_covs[target_index];
+    const int target_index = correspondences_[i];
+    const auto& cov_A = source_covs_[i];
+    const auto& cov_B = target_covs_[target_index];
 
-    Eigen::Matrix4d RCR = cov_B + trans_matrix * cov_A * trans_matrix.transpose();
+    Eigen::Matrix4d RCR = cov_B + x.matrix() * cov_A * x.matrix().transpose();
     RCR(3, 3) = 1.0;
 
-    mahalanobis[i] = RCR.inverse();
+    mahalanobis_[i] = RCR.inverse();
   }
 }
 
 template<typename PointSource, typename PointTarget>
-double FastGICPSingleThread<PointSource, PointTarget>::compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) const {
+double FastGICPSingleThread<PointSource, PointTarget>::linearize(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) {
   if(H && b) {
+    update_correspondences(trans);
     H->setZero();
     b->setZero();
   }
 
   double sum_errors = 0.0;
   for(int i = 0; i < input_->size(); i++) {
-    int target_index = correspondences[i];
+    int target_index = correspondences_[i];
     if(target_index < 0) {
       continue;
     }
 
     const Eigen::Vector4d mean_A = input_->at(i).getVector4fMap().template cast<double>();
-    const auto& cov_A = source_covs[i];
+    const auto& cov_A = source_covs_[i];
 
     const Eigen::Vector4d mean_B = target_->at(target_index).getVector4fMap().template cast<double>();
-    const auto& cov_B = target_covs[target_index];
+    const auto& cov_B = target_covs_[target_index];
 
     const Eigen::Vector4d transed_mean_A = trans * mean_A;
-    const Eigen::Vector4d error = mahalanobis[i] * (mean_B - transed_mean_A);
+    const Eigen::Vector4d error = mahalanobis_[i] * (mean_B - transed_mean_A);
 
     sum_errors += error.squaredNorm();
 
@@ -120,13 +112,18 @@ double FastGICPSingleThread<PointSource, PointTarget>::compute_error(const Eigen
     dtdx0.block<3, 3>(0, 0) = skewd(transed_mean_A.head<3>());
     dtdx0.block<3, 3>(0, 3) = -Eigen::Matrix3d::Identity();
 
-    Eigen::Matrix<double, 4, 6> jlossexp = mahalanobis[i] * dtdx0;
+    Eigen::Matrix<double, 4, 6> jlossexp = mahalanobis_[i] * dtdx0;
 
     (*H) += jlossexp.transpose() * jlossexp;
     (*b) += jlossexp.transpose() * error;
   }
 
   return sum_errors;
+}
+
+template<typename PointSource, typename PointTarget>
+double FastGICPSingleThread<PointSource, PointTarget>::compute_error(const Eigen::Isometry3d& trans) {
+  return linearize(trans, nullptr, nullptr);
 }
 
 }  // namespace fast_gicp

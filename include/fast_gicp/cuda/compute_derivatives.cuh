@@ -7,6 +7,7 @@
 #include <fast_gicp/cuda/gaussian_voxelmap.cuh>
 
 namespace fast_gicp {
+  namespace cuda {
 
 double compute_derivatives(
   const thrust::device_vector<Eigen::Vector3f>& src_points,
@@ -19,6 +20,7 @@ double compute_derivatives(
   Eigen::Matrix<double, 6, 1>* b
 );
 
+  }
 }  // namespace fast_gicp
 
 #endif

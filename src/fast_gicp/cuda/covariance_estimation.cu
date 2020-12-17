@@ -10,6 +10,7 @@
 #include <fast_gicp/cuda/covariance_estimation.cuh>
 
 namespace fast_gicp {
+  namespace cuda {
 
 namespace {
   struct covariance_estimation_kernel {
@@ -88,4 +89,6 @@ void covariance_estimation(const thrust::device_vector<Eigen::Vector3f>& points,
       break;
   }
 }
+
+  }
 }

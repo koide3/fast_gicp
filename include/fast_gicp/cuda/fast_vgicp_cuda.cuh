@@ -18,7 +18,7 @@ class device_vector;
 }  // namespace thrust
 
 namespace fast_gicp {
-  namespace cuda {
+namespace cuda {
 
 class GaussianVoxelMap;
 
@@ -78,7 +78,7 @@ public:
   std::unique_ptr<Indices> voxel_correspondences;
 };
 
-  }
+}  // namespace cuda
 }  // namespace fast_gicp
 
 #endif

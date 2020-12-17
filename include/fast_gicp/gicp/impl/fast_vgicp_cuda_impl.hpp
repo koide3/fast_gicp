@@ -19,17 +19,32 @@
 namespace fast_gicp {
 
 template<typename PointSource, typename PointTarget>
-FastVGICPCuda<PointSource, PointTarget>::FastVGICPCuda() : FastVGICP<PointSource, PointTarget>() {
+FastVGICPCuda<PointSource, PointTarget>::FastVGICPCuda() : LsqRegistration<PointSource, PointTarget>() {
   this->reg_name_ = "FastVGICPCuda";
-
+  k_correspondences_ = 20;
+  voxel_resolution_ = 1.0;
+  regularization_method_ = RegularizationMethod::PLANE;
   neighbor_search_method_ = NearestNeighborMethod::CPU_PARALLEL_KDTREE;
 
   vgicp_cuda_.reset(new cuda::FastVGICPCudaCore());
-  vgicp_cuda_->set_resolution(this->voxel_resolution_);
+  vgicp_cuda_->set_resolution(voxel_resolution_);
 }
 
 template<typename PointSource, typename PointTarget>
 FastVGICPCuda<PointSource, PointTarget>::~FastVGICPCuda() {}
+
+template<typename PointSource, typename PointTarget>
+void FastVGICPCuda<PointSource, PointTarget>::setCorrespondenceRandomness(int k) {}
+
+template<typename PointSource, typename PointTarget>
+void FastVGICPCuda<PointSource, PointTarget>::setResolution(double resolution) {
+  vgicp_cuda_->set_resolution(resolution);
+}
+
+template<typename PointSource, typename PointTarget>
+void FastVGICPCuda<PointSource, PointTarget>::setRegularizationMethod(RegularizationMethod method) {
+  regularization_method_ = method;
+}
 
 template<typename PointSource, typename PointTarget>
 void FastVGICPCuda<PointSource, PointTarget>::setNearesetNeighborSearchMethod(NearestNeighborMethod method) {
@@ -130,13 +145,8 @@ std::vector<int> FastVGICPCuda<PointSource, PointTarget>::find_neighbors_paralle
 }
 
 template<typename PointSource, typename PointTarget>
-void FastVGICPCuda<PointSource, PointTarget>::update_correspondences(const Eigen::Isometry3d& trans) {
-  vgicp_cuda_->update_correspondences(trans);
-}
-
-template<typename PointSource, typename PointTarget>
 double FastVGICPCuda<PointSource, PointTarget>::linearize(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) {
-  update_correspondences(trans);
+  vgicp_cuda_->update_correspondences(trans);
   return vgicp_cuda_->compute_error(trans, H, b);
 }
 

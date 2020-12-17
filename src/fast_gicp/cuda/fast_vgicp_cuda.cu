@@ -12,7 +12,7 @@
 #include <fast_gicp/cuda/find_voxel_correspondences.cuh>
 
 namespace fast_gicp {
-  namespace cuda {
+namespace cuda {
 
 FastVGICPCudaCore::FastVGICPCudaCore() {
   // warming up GPU
@@ -28,15 +28,9 @@ void FastVGICPCudaCore::set_resolution(double resolution) {
 }
 
 void FastVGICPCudaCore::swap_source_and_target() {
-  if(source_points && target_points) {
-    source_points.swap(target_points);
-  }
-  if(source_neighbors && target_neighbors) {
-    source_neighbors.swap(target_neighbors);
-  }
-  if(source_covariances && target_covariances) {
-    source_covariances.swap(target_covariances);
-  }
+  source_points.swap(target_points);
+  source_neighbors.swap(target_neighbors);
+  source_covariances.swap(target_covariances);
 
   if(!target_points || !target_covariances) {
     return;
@@ -89,7 +83,7 @@ void FastVGICPCudaCore::set_target_neighbors(int k, const std::vector<int>& neig
 }
 
 struct untie_pair_second {
-  __device__ int operator() (thrust::pair<float, int>& p) const {
+  __device__ int operator()(thrust::pair<float, int>& p) const {
     return p.second;
   }
 };
@@ -198,5 +192,5 @@ double FastVGICPCudaCore::compute_error(const Eigen::Isometry3d& trans, Eigen::M
   return compute_derivatives(*source_points, *source_covariances, *voxelmap, *voxel_correspondences, linearized_x, trans.cast<float>(), H, b);
 }
 
-  }
+}  // namespace cuda
 }  // namespace fast_gicp

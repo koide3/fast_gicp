@@ -15,22 +15,24 @@ This package is a collection of GICP-based fast point cloud registration algorit
 ### Dependencies
 - PCL
 - Eigen
+- OpenMP
+- CUDA (optional)
 - [Sophus](https://github.com/strasdat/Sophus)
 - [nvbio](https://github.com/NVlabs/nvbio)
-- OpenMP (optional)
-- CUDA (optional)
 
-We have tested this package with Ubuntu 18.04, ROS melodic, and CUDA 10.2.
+We have tested this package with Ubuntu 20.04, ROS noetic, and CUDA 11.1.
 
 ### CUDA
 
-To enable CUDA-based features, uncomment ```find_package(CUDA)``` in ```CMakeLists.txt```.
+To enable the CUDA-powered implementations, set ```BUILD_VGICP_CUDA``` cmake option to ```ON```.
 
 ### ROS
 ```bash
 cd ~/catkin_ws/src
 git clone https://github.com/SMRT-AIST/fast_gicp --recursive
 cd .. && catkin_make -DCMAKE_BUILD_TYPE=Release
+# eanble cuda-based implementations
+# cd .. && catkin_make -DCMAKE_BUILD_TYPE=Release -DBUILD_VGICP_CUDA=ON
 ```
 
 ### Non-ROS
@@ -38,6 +40,8 @@ cd .. && catkin_make -DCMAKE_BUILD_TYPE=Release
 git clone https://github.com/SMRT-AIST/fast_gicp --recursive
 mkdir fast_gicp/build && fast_gicp/build
 cmake .. -DCMAKE_BUILD_TYPE=Release
+# eanble cuda-based implementations
+# cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_VGICP_CUDA=ON
 make -j8
 ```
 
@@ -52,22 +56,21 @@ rosrun fast_gicp gicp_align 251370668.pcd 251371071.pcd
 ```
 target:17249[pts] source:17518[pts]
 --- pcl_gicp ---
-single:116.732[msec] 100times:10867.1[msec] fitness_score:0.204306
+single:127.508[msec] 100times:12549.4[msec] fitness_score:0.204892
 --- pcl_ndt ---
-single:52.8007[msec] 100times:5220.49[msec] fitness_score:0.226416
+single:53.5904[msec] 100times:5467.16[msec] fitness_score:0.229616
 --- fgicp_st ---
-single:110.343[msec] 100times:10651.2[msec] 100times_reuse:6962.1[msec] fitness_score:0.0922969
+single:111.324[msec] 100times:10662.7[msec] 100times_reuse:6794.59[msec] fitness_score:0.204379
 --- fgicp_mt ---
-single:24.3643[msec] 100times:2716.7[msec] 100times_reuse:1799.1[msec] fitness_score:0.0922969
+single:20.1602[msec] 100times:1585[msec] 100times_reuse:1017.74[msec] fitness_score:0.204412
 --- vgicp_st ---
-single:115.041[msec] 100times:8759.43[msec] 100times_reuse:4784.57[msec] fitness_score:0.0912174
+single:112.001[msec] 100times:7959.9[msec] 100times_reuse:4408.22[msec] fitness_score:0.204067
 --- vgicp_mt ---
-single:19.705[msec] 100times:1963.74[msec] 100times_reuse:1044.29[msec] fitness_score:0.0912174
+single:18.1106[msec] 100times:1381[msec] 100times_reuse:806.53[msec] fitness_score:0.204067
 --- vgicp_cuda (parallel_kdtree) ---
-single:16.1846[msec] 100times:1611.89[msec] 100times_reuse:779.65[msec] fitness_score:0.0709287
+single:15.9587[msec] 100times:1451.85[msec] 100times_reuse:695.48[msec] fitness_score:0.204061
 --- vgicp_cuda (gpu_bruteforce) ---
-single:49.7294[msec] 100times:3145.78[msec] 100times_reuse:1541.36[msec] fitness_score:0.0710122
-
+single:53.9113[msec] 100times:3463.5[msec] 100times_reuse:1703.41[msec] fitness_score:0.204049
 ```
 
 See [src/align.cpp](https://github.com/SMRT-AIST/fast_gicp/blob/master/src/align.cpp) for the detailed usage.

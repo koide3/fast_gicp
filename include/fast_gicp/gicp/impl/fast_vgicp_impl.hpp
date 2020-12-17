@@ -48,6 +48,8 @@ void FastVGICP<PointSource, PointTarget>::swapSourceAndTarget() {
   source_kdtree_.swap(target_kdtree_);
   source_covs_.swap(target_covs_);
   voxelmap_.reset();
+  voxel_correspondences_.clear();
+  voxel_mahalanobis_.clear();
 }
 
 template<typename PointSource, typename PointTarget>

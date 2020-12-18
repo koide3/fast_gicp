@@ -35,12 +35,16 @@ protected:
   using pcl::Registration<PointSource, PointTarget, Scalar>::converged_;
 
 public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   LsqRegistration();
   virtual ~LsqRegistration();
 
   void setRotationEpsilon(double eps);
   void setInitialLambdaFactor(double init_lambda_factor);
   void setDebugPrint(bool lm_debug_print);
+
+  const Eigen::Matrix<double, 6, 6>& getFinalHessian() const;
 
   virtual void swapSourceAndTarget() {}
   virtual void clearSource() {}
@@ -66,6 +70,8 @@ protected:
   double lm_init_lambda_factor_;
   double lm_lambda_;
   bool lm_debug_print_;
+
+  Eigen::Matrix<double, 6, 6> final_hessian_;
 };
 }  // namespace fast_gicp
 

@@ -55,8 +55,8 @@ void FastVGICPCuda<PointSource, PointTarget>::setRegularizationMethod(Regulariza
   regularization_method_ = method;
 }
 
-template<typename PointSource, typename PointTarget>
-void FastVGICPCuda<PointSource, PointTarget>::setNearesetNeighborSearchMethod(NearestNeighborMethod method) {
+template <typename PointSource, typename PointTarget>
+void FastVGICPCuda<PointSource, PointTarget>::setNearestNeighborSearchMethod(NearestNeighborMethod method) {
   neighbor_search_method_ = method;
 }
 

@@ -43,7 +43,12 @@ void FastVGICPCuda<PointSource, PointTarget>::setResolution(double resolution) {
 }
 
 template <typename PointSource, typename PointTarget>
-void FastVGICPCuda<PointSource, PointTarget>::setKernelCovarianceEstimationParams(double kernel_width, double max_dist) {}
+void FastVGICPCuda<PointSource, PointTarget>::setKernelWidth(double kernel_width, double max_dist) {
+  if (max_dist <= 0.0) {
+    max_dist = kernel_width * 5.0;
+  }
+  vgicp_cuda_->set_kernel_params(kernel_width, max_dist);
+}
 
 template<typename PointSource, typename PointTarget>
 void FastVGICPCuda<PointSource, PointTarget>::setRegularizationMethod(RegularizationMethod method) {

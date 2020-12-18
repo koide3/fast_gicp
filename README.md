@@ -20,7 +20,7 @@ This package is a collection of GICP-based fast point cloud registration algorit
 - [Sophus](https://github.com/strasdat/Sophus)
 - [nvbio](https://github.com/NVlabs/nvbio)
 
-We have tested this package with Ubuntu 20.04, ROS noetic, and CUDA 11.1.
+We have tested this package on Ubuntu 18.04/20.04 and CUDA 11.1.
 
 ### CUDA
 
@@ -71,6 +71,8 @@ single:18.1106[msec] 100times:1381[msec] 100times_reuse:806.53[msec] fitness_sco
 single:15.9587[msec] 100times:1451.85[msec] 100times_reuse:695.48[msec] fitness_score:0.204061
 --- vgicp_cuda (gpu_bruteforce) ---
 single:53.9113[msec] 100times:3463.5[msec] 100times_reuse:1703.41[msec] fitness_score:0.204049
+--- vgicp_cuda (gpu_rbf_kernel) ---
+single:5.91508[msec] 100times:590.725[msec] 100times_reuse:226.787[msec] fitness_score:0.20557
 ```
 
 See [src/align.cpp](https://github.com/SMRT-AIST/fast_gicp/blob/master/src/align.cpp) for the detailed usage.

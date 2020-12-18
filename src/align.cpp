@@ -191,6 +191,8 @@ int main(int argc, char** argv) {
   // use RBF-kernel-based covariance estimation
   // extremely fast but maybe a bit inaccurate
   vgicp_cuda.setNearesetNeighborSearchMethod(fast_gicp::NearestNeighborMethod::GPU_RBF_KERNEL);
+  // kernel width (and distance threshold) need to be tuned
+  vgicp_cuda.setKernelWidth(0.5);
   test(vgicp_cuda, target_cloud, source_cloud);
 #endif
 

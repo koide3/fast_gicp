@@ -82,6 +82,8 @@ if(BUILD_VGICP_CUDA)
     src/fast_gicp/cuda/fast_vgicp_cuda.cu
     src/fast_gicp/cuda/brute_force_knn.cu
     src/fast_gicp/cuda/covariance_estimation.cu
+    src/fast_gicp/cuda/covariance_estimation_rbf.cu
+    src/fast_gicp/cuda/covariance_regularization.cu
     src/fast_gicp/cuda/gaussian_voxelmap.cu
     src/fast_gicp/cuda/find_voxel_correspondences.cu
     src/fast_gicp/cuda/compute_derivatives.cu

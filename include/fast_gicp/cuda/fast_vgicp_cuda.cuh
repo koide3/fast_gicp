@@ -33,6 +33,7 @@ public:
   ~FastVGICPCudaCore();
 
   void set_resolution(double resolution);
+  void set_kernel_params(double kernel_width, double kernel_max_dist);
 
   void swap_source_and_target();
   void set_source_cloud(const std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>>& cloud);
@@ -45,6 +46,9 @@ public:
 
   void calculate_source_covariances(RegularizationMethod method);
   void calculate_target_covariances(RegularizationMethod method);
+
+  void calculate_source_covariances_rbf(RegularizationMethod method);
+  void calculate_target_covariances_rbf(RegularizationMethod method);
 
   void get_source_covariances(std::vector<Eigen::Matrix3f, Eigen::aligned_allocator<Eigen::Matrix3f>>& covs) const;
   void get_target_covariances(std::vector<Eigen::Matrix3f, Eigen::aligned_allocator<Eigen::Matrix3f>>& covs) const;
@@ -62,6 +66,8 @@ public:
 
 public:
   double resolution;
+  double kernel_width;
+  double kernel_max_dist;
 
   std::unique_ptr<Points> source_points;
   std::unique_ptr<Points> target_points;

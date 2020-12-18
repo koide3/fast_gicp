@@ -6,6 +6,7 @@
 
 #include <fast_gicp/cuda/brute_force_knn.cuh>
 #include <fast_gicp/cuda/covariance_estimation.cuh>
+#include <fast_gicp/cuda/covariance_regularization.cuh>
 #include <fast_gicp/cuda/gaussian_voxelmap.cuh>
 #include <fast_gicp/cuda/compute_mahalanobis.cuh>
 #include <fast_gicp/cuda/compute_derivatives.cuh>
@@ -20,11 +21,19 @@ FastVGICPCudaCore::FastVGICPCudaCore() {
 
   resolution = 1.0;
   linearized_x.setIdentity();
+
+  kernel_width = 0.25;
+  kernel_max_dist = 3.0;
 }
 FastVGICPCudaCore ::~FastVGICPCudaCore() {}
 
 void FastVGICPCudaCore::set_resolution(double resolution) {
   this->resolution = resolution;
+}
+
+void FastVGICPCudaCore::set_kernel_params(double kernel_width, double kernel_max_dist) {
+  this->kernel_width = kernel_width;
+  this->kernel_max_dist = kernel_max_dist;
 }
 
 void FastVGICPCudaCore::swap_source_and_target() {
@@ -123,7 +132,8 @@ void FastVGICPCudaCore::calculate_source_covariances(RegularizationMethod method
   if(!source_covariances) {
     source_covariances.reset(new thrust::device_vector<Eigen::Matrix3f>(source_points->size()));
   }
-  covariance_estimation(*source_points, k, *source_neighbors, *source_covariances, method);
+  covariance_estimation(*source_points, k, *source_neighbors, *source_covariances);
+  covariance_regularization(*source_covariances, method);
 }
 
 void FastVGICPCudaCore::calculate_target_covariances(RegularizationMethod method) {
@@ -133,7 +143,24 @@ void FastVGICPCudaCore::calculate_target_covariances(RegularizationMethod method
   if(!target_covariances) {
     target_covariances.reset(new thrust::device_vector<Eigen::Matrix3f>(target_points->size()));
   }
-  covariance_estimation(*target_points, k, *target_neighbors, *target_covariances, method);
+  covariance_estimation(*target_points, k, *target_neighbors, *target_covariances);
+  covariance_regularization(*target_covariances, method);
+}
+
+void FastVGICPCudaCore::calculate_source_covariances_rbf(RegularizationMethod method) {
+  if(!source_covariances) {
+    source_covariances.reset(new thrust::device_vector<Eigen::Matrix3f>(source_points->size()));
+  }
+  covariance_estimation_rbf(*source_points, kernel_width, kernel_max_dist, *source_covariances);
+  covariance_regularization(*source_covariances, method);
+}
+
+void FastVGICPCudaCore::calculate_target_covariances_rbf(RegularizationMethod method) {
+  if(!target_covariances) {
+    target_covariances.reset(new thrust::device_vector<Eigen::Matrix3f>(target_points->size()));
+  }
+  covariance_estimation_rbf(*target_points, kernel_width, kernel_max_dist, *target_covariances);
+  covariance_regularization(*target_covariances, method);
 }
 
 void FastVGICPCudaCore::get_voxel_correspondences(std::vector<int>& correspondences) const {

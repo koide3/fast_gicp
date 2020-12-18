@@ -18,7 +18,7 @@ namespace cuda {
 class FastVGICPCudaCore;
 }
 
-enum class NearestNeighborMethod { CPU_PARALLEL_KDTREE, GPU_BRUTEFORCE };
+enum class NearestNeighborMethod { CPU_PARALLEL_KDTREE, GPU_BRUTEFORCE, GPU_RBF_KERNEL };
 
 /**
  * @brief Fast Voxelized GICP algorithm boosted with CUDA
@@ -47,6 +47,7 @@ public:
 
   void setCorrespondenceRandomness(int k);
   void setResolution(double resolution);
+  void setKernelCovarianceEstimationParams(double kernel_width, double max_dist);
   void setRegularizationMethod(RegularizationMethod method);
   void setNearesetNeighborSearchMethod(NearestNeighborMethod method);
 

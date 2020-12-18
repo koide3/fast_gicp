@@ -186,6 +186,12 @@ int main(int argc, char** argv) {
   // this would be a good choice if your PC has a weak CPU and a strong GPU (e.g., NVIDIA Jetson)
   vgicp_cuda.setNearesetNeighborSearchMethod(fast_gicp::NearestNeighborMethod::GPU_BRUTEFORCE);
   test(vgicp_cuda, target_cloud, source_cloud);
+
+  std::cout << "--- vgicp_cuda (gpu_rbf_kernel) ---" << std::endl;
+  // use RBF-kernel-based covariance estimation
+  // extremely fast but maybe a bit inaccurate
+  vgicp_cuda.setNearesetNeighborSearchMethod(fast_gicp::NearestNeighborMethod::GPU_RBF_KERNEL);
+  test(vgicp_cuda, target_cloud, source_cloud);
 #endif
 
   return 0;

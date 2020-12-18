@@ -28,6 +28,7 @@ FastVGICPCuda<PointSource, PointTarget>::FastVGICPCuda() : LsqRegistration<Point
 
   vgicp_cuda_.reset(new cuda::FastVGICPCudaCore());
   vgicp_cuda_->set_resolution(voxel_resolution_);
+  vgicp_cuda_->set_kernel_params(0.5, 3.0);
 }
 
 template<typename PointSource, typename PointTarget>
@@ -40,6 +41,9 @@ template<typename PointSource, typename PointTarget>
 void FastVGICPCuda<PointSource, PointTarget>::setResolution(double resolution) {
   vgicp_cuda_->set_resolution(resolution);
 }
+
+template <typename PointSource, typename PointTarget>
+void FastVGICPCuda<PointSource, PointTarget>::setKernelCovarianceEstimationParams(double kernel_width, double max_dist) {}
 
 template<typename PointSource, typename PointTarget>
 void FastVGICPCuda<PointSource, PointTarget>::setRegularizationMethod(RegularizationMethod method) {
@@ -84,12 +88,16 @@ void FastVGICPCuda<PointSource, PointTarget>::setInputSource(const PointCloudSou
     case NearestNeighborMethod::CPU_PARALLEL_KDTREE: {
       std::vector<int> neighbors = find_neighbors_parallel_kdtree<PointSource>(k_correspondences_, cloud);
       vgicp_cuda_->set_source_neighbors(k_correspondences_, neighbors);
+      vgicp_cuda_->calculate_source_covariances(regularization_method_);
     } break;
     case NearestNeighborMethod::GPU_BRUTEFORCE:
       vgicp_cuda_->find_source_neighbors(k_correspondences_);
+      vgicp_cuda_->calculate_source_covariances(regularization_method_);
+      break;
+    case NearestNeighborMethod::GPU_RBF_KERNEL:
+      vgicp_cuda_->calculate_source_covariances_rbf(regularization_method_);
       break;
   }
-  vgicp_cuda_->calculate_source_covariances(regularization_method_);
 }
 
 template<typename PointSource, typename PointTarget>
@@ -109,12 +117,16 @@ void FastVGICPCuda<PointSource, PointTarget>::setInputTarget(const PointCloudTar
     case NearestNeighborMethod::CPU_PARALLEL_KDTREE: {
       std::vector<int> neighbors = find_neighbors_parallel_kdtree<PointTarget>(k_correspondences_, cloud);
       vgicp_cuda_->set_target_neighbors(k_correspondences_, neighbors);
+      vgicp_cuda_->calculate_target_covariances(regularization_method_);
     } break;
     case NearestNeighborMethod::GPU_BRUTEFORCE:
       vgicp_cuda_->find_target_neighbors(k_correspondences_);
+      vgicp_cuda_->calculate_target_covariances(regularization_method_);
+      break;
+    case NearestNeighborMethod::GPU_RBF_KERNEL:
+      vgicp_cuda_->calculate_target_covariances_rbf(regularization_method_);
       break;
   }
-  vgicp_cuda_->calculate_target_covariances(regularization_method_);
   vgicp_cuda_->create_target_voxelmap();
 }
 

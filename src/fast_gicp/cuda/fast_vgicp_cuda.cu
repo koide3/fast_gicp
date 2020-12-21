@@ -133,7 +133,7 @@ void FastVGICPCudaCore::calculate_source_covariances(RegularizationMethod method
     source_covariances.reset(new thrust::device_vector<Eigen::Matrix3f>(source_points->size()));
   }
   covariance_estimation(*source_points, k, *source_neighbors, *source_covariances);
-  covariance_regularization(*source_covariances, method);
+  covariance_regularization(*source_points, *source_covariances, method);
 }
 
 void FastVGICPCudaCore::calculate_target_covariances(RegularizationMethod method) {
@@ -144,7 +144,7 @@ void FastVGICPCudaCore::calculate_target_covariances(RegularizationMethod method
     target_covariances.reset(new thrust::device_vector<Eigen::Matrix3f>(target_points->size()));
   }
   covariance_estimation(*target_points, k, *target_neighbors, *target_covariances);
-  covariance_regularization(*target_covariances, method);
+  covariance_regularization(*target_points, *target_covariances, method);
 }
 
 void FastVGICPCudaCore::calculate_source_covariances_rbf(RegularizationMethod method) {
@@ -152,7 +152,7 @@ void FastVGICPCudaCore::calculate_source_covariances_rbf(RegularizationMethod me
     source_covariances.reset(new thrust::device_vector<Eigen::Matrix3f>(source_points->size()));
   }
   covariance_estimation_rbf(*source_points, kernel_width, kernel_max_dist, *source_covariances);
-  covariance_regularization(*source_covariances, method);
+  covariance_regularization(*source_points, *source_covariances, method);
 }
 
 void FastVGICPCudaCore::calculate_target_covariances_rbf(RegularizationMethod method) {
@@ -160,7 +160,7 @@ void FastVGICPCudaCore::calculate_target_covariances_rbf(RegularizationMethod me
     target_covariances.reset(new thrust::device_vector<Eigen::Matrix3f>(target_points->size()));
   }
   covariance_estimation_rbf(*target_points, kernel_width, kernel_max_dist, *target_covariances);
-  covariance_regularization(*target_covariances, method);
+  covariance_regularization(*target_points, *target_covariances, method);
 }
 
 void FastVGICPCudaCore::get_voxel_correspondences(std::vector<int>& correspondences) const {

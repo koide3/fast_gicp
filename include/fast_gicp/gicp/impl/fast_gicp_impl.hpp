@@ -75,6 +75,7 @@ void FastGICP<PointSource, PointTarget>::setInputSource(const PointCloudSourceCo
   }
 
   pcl::Registration<PointSource, PointTarget, Scalar>::setInputSource(cloud);
+  source_kdtree_->setInputCloud(cloud);
   source_covs_.clear();
 }
 
@@ -84,6 +85,7 @@ void FastGICP<PointSource, PointTarget>::setInputTarget(const PointCloudTargetCo
     return;
   }
   pcl::Registration<PointSource, PointTarget, Scalar>::setInputTarget(cloud);
+  target_kdtree_->setInputCloud(cloud);
   target_covs_.clear();
 }
 
@@ -99,10 +101,6 @@ void FastGICP<PointSource, PointTarget>::setTargetCovariances(const std::vector<
 
 template<typename PointSource, typename PointTarget>
 void FastGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
-  if(source_kdtree_->getInputCloud() != input_) {
-    source_kdtree_->setInputCloud(input_);
-  }
-
   if(source_covs_.size() != input_->size()) {
     calculate_covariances(input_, *source_kdtree_, source_covs_);
   }

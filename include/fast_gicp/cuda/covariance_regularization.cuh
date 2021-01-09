@@ -8,7 +8,7 @@
 namespace fast_gicp {
 namespace cuda {
 
-void covariance_regularization(thrust::device_vector<Eigen::Matrix3f>& covs, RegularizationMethod method);
+void covariance_regularization(thrust::device_vector<Eigen::Vector3f>& means, thrust::device_vector<Eigen::Matrix3f>& covs, RegularizationMethod method);
 
 }  // namespace cuda
 }  // namespace fast_gicp

@@ -58,7 +58,7 @@ void FastGICPSingleThread<PointSource, PointTarget>::update_correspondences(cons
 
     target_kdtree_->nearestKSearch(pt, 2, k_indices, k_sq_dists);
 
-    correspondences_[i] = k_indices[0];
+    correspondences_[i] = k_sq_dists[0] < this->corr_dist_threshold_ * this->corr_dist_threshold_ ? k_indices[0] : -1;
     sq_distances_[i] = k_sq_dists[0];
     second_sq_distances_[i] = k_sq_dists[1];
     anchors_[i] = pt.getVector4fMap();

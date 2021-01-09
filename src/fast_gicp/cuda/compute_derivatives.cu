@@ -23,11 +23,10 @@ struct compute_derivatives_kernel {
     const GaussianVoxelMap& voxelmap,
     const thrust::device_vector<Eigen::Vector3f>& src_means,
     const thrust::device_vector<Eigen::Matrix3f>& src_covs,
-    const Eigen::Isometry3f& x_eval,
-    const Eigen::Isometry3f& x)
-  : R_eval(x_eval.linear()),
-    R(x.linear()),
-    t(x.translation()),
+    const thrust::device_ptr<const Eigen::Isometry3f>& x_eval_ptr,
+    const thrust::device_ptr<const Eigen::Isometry3f>& x_ptr)
+  : trans_eval_ptr(x_eval_ptr),
+    trans_ptr(x_ptr),
     src_means_ptr(src_means.data()),
     src_covs_ptr(src_covs.data()),
     voxel_num_points_ptr(voxelmap.num_points.data()),
@@ -66,6 +65,13 @@ struct compute_derivatives_kernel {
       return thrust::make_tuple(0.0f, Eigen::Matrix<float, 6, 6>::Zero().eval(), Eigen::Matrix<float, 6, 1>::Zero().eval());
     }
 
+    const auto& trans_eval = *thrust::raw_pointer_cast(trans_eval_ptr);
+    const auto& trans = *thrust::raw_pointer_cast(trans_ptr);
+
+    Eigen::Matrix3f R_eval = trans_eval.linear();
+    Eigen::Matrix3f R = trans.linear();
+    Eigen::Vector3f t = trans.translation();
+
     const Eigen::Vector3f transed_mean_A = R * mean_A + t;
 
     Eigen::Matrix3f RCR = R_eval * cov_A * R_eval.transpose();
@@ -85,10 +91,8 @@ struct compute_derivatives_kernel {
     return thrust::make_tuple(error.squaredNorm(), H, b);
   }
 
-  const Eigen::Matrix3f R_eval;
-
-  const Eigen::Matrix3f R;
-  const Eigen::Vector3f t;
+  thrust::device_ptr<const Eigen::Isometry3f> trans_eval_ptr;
+  thrust::device_ptr<const Eigen::Isometry3f> trans_ptr;
 
   thrust::device_ptr<const Eigen::Vector3f> src_means_ptr;
   thrust::device_ptr<const Eigen::Matrix3f> src_covs_ptr;
@@ -98,13 +102,11 @@ struct compute_derivatives_kernel {
   thrust::device_ptr<const Eigen::Matrix3f> voxel_covs_ptr;
 };
 
-/*
-template<>
-__host__ __device__
-float compute_derivatives_kernel<float>::operator() (const thrust::tuple<Eigen::Vector3f, Eigen::Matrix3f, int>& input_tuple) const {
-  const Eigen::Vector3f& mean_A = thrust::get<0>(input_tuple);
-  const Eigen::Matrix3f& cov_A = thrust::get<1>(input_tuple);
-  const int voxel_index = thrust::get<2>(input_tuple);
+template <>
+__host__ __device__ float compute_derivatives_kernel<float>::operator()(const thrust::pair<int, int>& correspondence) const {
+  const Eigen::Vector3f& mean_A = thrust::raw_pointer_cast(src_means_ptr)[correspondence.first];
+  const Eigen::Matrix3f& cov_A = thrust::raw_pointer_cast(src_covs_ptr)[correspondence.first];
+  const int voxel_index = correspondence.second;
 
   if(voxel_index < 0) {
     return 0.0f;
@@ -113,6 +115,13 @@ float compute_derivatives_kernel<float>::operator() (const thrust::tuple<Eigen::
   int num_points = thrust::raw_pointer_cast(voxel_num_points_ptr)[voxel_index];
   const Eigen::Vector3f& mean_B = thrust::raw_pointer_cast(voxel_means_ptr)[voxel_index];
   const Eigen::Matrix3f& cov_B = thrust::raw_pointer_cast(voxel_covs_ptr)[voxel_index];
+
+  const auto& trans_eval = *thrust::raw_pointer_cast(trans_eval_ptr);
+  const auto& trans = *thrust::raw_pointer_cast(trans_ptr);
+
+  Eigen::Matrix3f R_eval = trans_eval.linear();
+  Eigen::Matrix3f R = trans.linear();
+  Eigen::Vector3f t = trans.translation();
 
   const Eigen::Vector3f transed_mean_A = R * mean_A + t;
 
@@ -123,7 +132,6 @@ float compute_derivatives_kernel<float>::operator() (const thrust::tuple<Eigen::
 
   return error.squaredNorm();
 }
-*/
 
 struct sum_errors_kernel {
   template<typename Tuple>
@@ -150,29 +158,26 @@ double compute_derivatives(
   const thrust::device_vector<Eigen::Matrix3f>& src_covs,
   const GaussianVoxelMap& voxelmap,
   const thrust::device_vector<thrust::pair<int, int>>& voxel_correspondences,
-  const Eigen::Isometry3f& linearized_x,
-  const Eigen::Isometry3f& x,
+  const thrust::device_ptr<const Eigen::Isometry3f>& linearized_x_ptr,
+  const thrust::device_ptr<const Eigen::Isometry3f>& x_ptr,
   Eigen::Matrix<double, 6, 6>* H,
-  Eigen::Matrix<double, 6, 1>* b
-) {
-  /*
+  Eigen::Matrix<double, 6, 1>* b) {
+
   if(H == nullptr || b == nullptr) {
     float sum_errors = thrust::transform_reduce(
-      thrust::make_zip_iterator(thrust::make_tuple(src_points.begin(), src_covs.begin(), voxel_correspondences.begin())),
-      thrust::make_zip_iterator(thrust::make_tuple(src_points.end(), src_covs.end(), voxel_correspondences.end())),
-      compute_derivatives_kernel<float>(voxelmap, linearized_x, x),
+      voxel_correspondences.begin(),
+      voxel_correspondences.end(),
+      compute_derivatives_kernel<float>(voxelmap, src_points, src_covs, linearized_x_ptr, x_ptr),
       0.0f,
-      sum_errors_kernel()
-    );
+      sum_errors_kernel());
 
     return sum_errors;
   }
-  */
 
   auto sum_errors = thrust::transform_reduce(
     voxel_correspondences.begin(),
     voxel_correspondences.end(),
-    compute_derivatives_kernel<thrust::tuple<float, Eigen::Matrix<float, 6, 6>, Eigen::Matrix<float, 6, 1>>>(voxelmap, src_points, src_covs, linearized_x, x),
+    compute_derivatives_kernel<thrust::tuple<float, Eigen::Matrix<float, 6, 6>, Eigen::Matrix<float, 6, 1>>>(voxelmap, src_points, src_covs, linearized_x_ptr, x_ptr),
     thrust::make_tuple(0.0f, Eigen::Matrix<float, 6, 6>::Zero().eval(), Eigen::Matrix<float, 6, 1>::Zero().eval()),
     sum_errors_kernel());
 
@@ -183,6 +188,5 @@ double compute_derivatives(
 
   return thrust::get<0>(sum_errors);
 }
-
   }
 }  // namespace fast_gicp

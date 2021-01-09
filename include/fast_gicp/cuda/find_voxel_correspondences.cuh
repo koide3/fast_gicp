@@ -14,7 +14,7 @@ namespace cuda {
 void find_voxel_correspondences(
   const thrust::device_vector<Eigen::Vector3f>& src_points,
   const GaussianVoxelMap& voxelmap,
-  const Eigen::Isometry3f& x,
+  const thrust::device_ptr<const Eigen::Isometry3f>& x_ptr,
   const thrust::device_vector<Eigen::Vector3i>& offsets,
   thrust::device_vector<thrust::pair<int, int>>& correspondences) ;
 

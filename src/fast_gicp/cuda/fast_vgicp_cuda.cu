@@ -250,15 +250,24 @@ void FastVGICPCudaCore::create_target_voxelmap() {
 }
 
 void FastVGICPCudaCore::update_correspondences(const Eigen::Isometry3d& trans) {
+  thrust::device_vector<Eigen::Isometry3f> trans_ptr(1);
+  trans_ptr[0] = trans.cast<float>();
+
   if(voxel_correspondences == nullptr) {
     voxel_correspondences.reset(new Correspondences());
   }
   linearized_x = trans.cast<float>();
-  find_voxel_correspondences(*source_points, *voxelmap, linearized_x, *offsets, *voxel_correspondences);
+  find_voxel_correspondences(*source_points, *voxelmap, trans_ptr.data(), *offsets, *voxel_correspondences);
 }
 
 double FastVGICPCudaCore::compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) const {
-  return compute_derivatives(*source_points, *source_covariances, *voxelmap, *voxel_correspondences, linearized_x, trans.cast<float>(), H, b);
+  thrust::host_vector<Eigen::Isometry3f, Eigen::aligned_allocator<Eigen::Isometry3f>> trans_(2);
+  trans_[0] = linearized_x;
+  trans_[1] = trans.cast<float>();
+
+  thrust::device_vector<Eigen::Isometry3f> trans_ptr = trans_;
+
+  return compute_derivatives(*source_points, *source_covariances, *voxelmap, *voxel_correspondences, trans_ptr.data(), trans_ptr.data() + 1, H, b);
 }
 
 }  // namespace cuda

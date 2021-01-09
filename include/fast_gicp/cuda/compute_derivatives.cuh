@@ -13,7 +13,7 @@ double compute_derivatives(
   const thrust::device_vector<Eigen::Vector3f>& src_points,
   const thrust::device_vector<Eigen::Matrix3f>& src_covs,
   const GaussianVoxelMap& voxelmap,
-  const thrust::device_vector<int>& voxel_correspondences,
+  const thrust::device_vector<thrust::pair<int, int>>& voxel_correspondences,
   const Eigen::Isometry3f& linearized_x,
   const Eigen::Isometry3f& x,
   Eigen::Matrix<double, 6, 6>* H,

@@ -4,15 +4,21 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <thrust/pair.h>
 #include <thrust/device_vector.h>
 #include <fast_gicp/cuda/gaussian_voxelmap.cuh>
 
 namespace fast_gicp {
-  namespace cuda {
+namespace cuda {
 
-void find_voxel_correspondences(const thrust::device_vector<Eigen::Vector3f>& src_points, const GaussianVoxelMap& voxelmap, const Eigen::Isometry3f& x, thrust::device_vector<int>& correspondences);
+void find_voxel_correspondences(
+  const thrust::device_vector<Eigen::Vector3f>& src_points,
+  const GaussianVoxelMap& voxelmap,
+  const Eigen::Isometry3f& x,
+  const thrust::device_vector<Eigen::Vector3i>& offsets,
+  thrust::device_vector<thrust::pair<int, int>>& correspondences) ;
 
-  }
-}
+}  // namespace cuda
+}  // namespace fast_gicp
 
 #endif

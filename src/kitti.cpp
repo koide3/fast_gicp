@@ -84,9 +84,11 @@ int main(int argc, char** argv) {
 
   // registration method
   // you should fine-tune hyper-parameters (e.g., voxel resolution, max correspondence distance) for the best result
-  fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ> gicp;
+  // fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ> gicp;
   // fast_gicp::FastVGICP<pcl::PointXYZ, pcl::PointXYZ> gicp;
-  // fast_gicp::FastVGICPCuda<pcl::PointXYZ, pcl::PointXYZ> gicp;
+  fast_gicp::FastVGICPCuda<pcl::PointXYZ, pcl::PointXYZ> gicp;
+  gicp.setResolution(0.5);
+  gicp.setNeighborSearchMethod(fast_gicp::NeighborSearchMethod::DIRECT7);
   // gicp.setNearestNeighborSearchMethod(fast_gicp::NearestNeighborMethod::GPU_RBF_KERNEL);
   gicp.setMaxCorrespondenceDistance(1.0);
 

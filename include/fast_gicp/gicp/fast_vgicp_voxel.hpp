@@ -1,6 +1,7 @@
 #ifndef FAST_GICP_FAST_VGICP_VOXEL_HPP
 #define FAST_GICP_FAST_VGICP_VOXEL_HPP
 
+#include <unordered_map>
 #include <boost/functional/hash.hpp>
 #include <fast_gicp/gicp/gicp_settings.hpp>
 

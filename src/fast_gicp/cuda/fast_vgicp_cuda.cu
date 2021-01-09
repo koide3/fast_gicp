@@ -24,6 +24,9 @@ FastVGICPCudaCore::FastVGICPCudaCore() {
 
   kernel_width = 0.25;
   kernel_max_dist = 3.0;
+
+  offsets.reset(new thrust::device_vector<Eigen::Vector3i>(1));
+  (*offsets)[0] = Eigen::Vector3i::Zero().eval();
 }
 FastVGICPCudaCore ::~FastVGICPCudaCore() {}
 
@@ -34,6 +37,45 @@ void FastVGICPCudaCore::set_resolution(double resolution) {
 void FastVGICPCudaCore::set_kernel_params(double kernel_width, double kernel_max_dist) {
   this->kernel_width = kernel_width;
   this->kernel_max_dist = kernel_max_dist;
+}
+
+void FastVGICPCudaCore::set_neighbor_search_method(fast_gicp::NeighborSearchMethod method) {
+  thrust::host_vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> h_offsets;
+
+  switch (method) {
+    default:
+      std::cerr << "here must not be reached" << std::endl;
+      abort();
+
+    case fast_gicp::NeighborSearchMethod::DIRECT1:
+      h_offsets.resize(1);
+      h_offsets[0] = Eigen::Vector3i::Zero();
+      break;
+
+    case fast_gicp::NeighborSearchMethod::DIRECT7:
+      h_offsets.resize(7);
+      h_offsets[0] = Eigen::Vector3i(0, 0, 0);
+      h_offsets[1] = Eigen::Vector3i(1, 0, 0);
+      h_offsets[2] = Eigen::Vector3i(-1, 0, 0);
+      h_offsets[3] = Eigen::Vector3i(0, 1, 0);
+      h_offsets[4] = Eigen::Vector3i(0, -1, 0);
+      h_offsets[5] = Eigen::Vector3i(0, 0, 1);
+      h_offsets[6] = Eigen::Vector3i(0, 0, -1);
+      break;
+
+    case fast_gicp::NeighborSearchMethod::DIRECT27:
+      h_offsets.reserve(27);
+      for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+          for (int k = 0; k < 3; k++) {
+            h_offsets.push_back(Eigen::Vector3i(i, j, k));
+          }
+        }
+      }
+      break;
+  }
+
+  *offsets = h_offsets;
 }
 
 void FastVGICPCudaCore::swap_source_and_target() {
@@ -163,10 +205,10 @@ void FastVGICPCudaCore::calculate_target_covariances_rbf(RegularizationMethod me
   covariance_regularization(*target_points, *target_covariances, method);
 }
 
-void FastVGICPCudaCore::get_voxel_correspondences(std::vector<int>& correspondences) const {
-  thrust::host_vector<int> corrs = *voxel_correspondences;
+void FastVGICPCudaCore::get_voxel_correspondences(std::vector<std::pair<int, int>>& correspondences) const {
+  thrust::host_vector<thrust::pair<int, int>> corrs = *voxel_correspondences;
   correspondences.resize(corrs.size());
-  std::copy(corrs.begin(), corrs.end(), correspondences.begin());
+  std::transform(corrs.begin(), corrs.end(), correspondences.begin(), [](const auto& x) { return std::make_pair(x.first, x.second); });
 }
 
 void FastVGICPCudaCore::get_voxel_num_points(std::vector<int>& num_points) const {
@@ -209,10 +251,10 @@ void FastVGICPCudaCore::create_target_voxelmap() {
 
 void FastVGICPCudaCore::update_correspondences(const Eigen::Isometry3d& trans) {
   if(voxel_correspondences == nullptr) {
-    voxel_correspondences.reset(new Indices(source_points->size()));
+    voxel_correspondences.reset(new Correspondences());
   }
   linearized_x = trans.cast<float>();
-  find_voxel_correspondences(*source_points, *voxelmap, linearized_x, *voxel_correspondences);
+  find_voxel_correspondences(*source_points, *voxelmap, linearized_x, *offsets, *voxel_correspondences);
 }
 
 double FastVGICPCudaCore::compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) const {

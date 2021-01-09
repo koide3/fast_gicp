@@ -39,7 +39,7 @@ void FastVGICPCudaCore::set_kernel_params(double kernel_width, double kernel_max
   this->kernel_max_dist = kernel_max_dist;
 }
 
-void FastVGICPCudaCore::set_neighbor_search_method(fast_gicp::NeighborSearchMethod method) {
+void FastVGICPCudaCore::set_neighbor_search_method(fast_gicp::NeighborSearchMethod method, double radius) {
   thrust::host_vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> h_offsets;
 
   switch (method) {
@@ -68,10 +68,26 @@ void FastVGICPCudaCore::set_neighbor_search_method(fast_gicp::NeighborSearchMeth
       for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
           for (int k = 0; k < 3; k++) {
-            h_offsets.push_back(Eigen::Vector3i(i, j, k));
+            h_offsets.push_back(Eigen::Vector3i(i - 1, j - 1, k - 1));
           }
         }
       }
+      break;
+
+    case fast_gicp::NeighborSearchMethod::DIRECT_RADIUS:
+      h_offsets.reserve(50);
+      int range = std::ceil(radius);
+      for (int i = -range; i <= range; i++) {
+        for (int j = -range; j <= range; j++) {
+          for (int k = -range; k <= range; k++) {
+            Eigen::Vector3i offset(i, j, k);
+            if(offset.cast<double>().norm() <= radius + 1e-3) {
+              h_offsets.push_back(offset);
+            }
+          }
+        }
+      }
+
       break;
   }
 
@@ -87,10 +103,7 @@ void FastVGICPCudaCore::swap_source_and_target() {
     return;
   }
 
-  if(!voxelmap) {
-    voxelmap.reset(new GaussianVoxelMap(resolution));
-  }
-  voxelmap->create_voxelmap(*target_points, *target_covariances);
+  create_target_voxelmap();
 }
 
 void FastVGICPCudaCore::set_source_cloud(const std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>>& cloud) {

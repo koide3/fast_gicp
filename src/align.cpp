@@ -147,7 +147,6 @@ int main(int argc, char** argv) {
 
   std::cout << "target:" << target_cloud->size() << "[pts] source:" << source_cloud->size() << "[pts]" << std::endl;
 
-  /*
   std::cout << "--- pcl_gicp ---" << std::endl;
   pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> pcl_gicp;
   test_pcl(pcl_gicp, target_cloud, source_cloud);
@@ -176,7 +175,6 @@ int main(int argc, char** argv) {
   std::cout << "--- vgicp_mt ---" << std::endl;
   vgicp.setNumThreads(omp_get_max_threads());
   test(vgicp, target_cloud, source_cloud);
-  */
 
 #ifdef USE_VGICP_CUDA
   std::cout << "--- vgicp_cuda (parallel_kdtree) ---" << std::endl;

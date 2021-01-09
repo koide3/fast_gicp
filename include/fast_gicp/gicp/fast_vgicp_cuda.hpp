@@ -49,7 +49,7 @@ public:
   void setResolution(double resolution);
   void setKernelWidth(double kernel_width, double max_dist = -1.0);
   void setRegularizationMethod(RegularizationMethod method);
-  void setNeighborSearchMethod(NeighborSearchMethod method);
+  void setNeighborSearchMethod(NeighborSearchMethod method, double radius = -1.0);
   void setNearestNeighborSearchMethod(NearestNeighborMethod method);
 
   virtual void swapSourceAndTarget() override;

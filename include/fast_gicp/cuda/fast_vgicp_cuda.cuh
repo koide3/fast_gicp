@@ -39,7 +39,7 @@ public:
 
   void set_resolution(double resolution);
   void set_kernel_params(double kernel_width, double kernel_max_dist);
-  void set_neighbor_search_method(fast_gicp::NeighborSearchMethod method);
+  void set_neighbor_search_method(fast_gicp::NeighborSearchMethod method, double radius);
 
   void swap_source_and_target();
   void set_source_cloud(const std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>>& cloud);

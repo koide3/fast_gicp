@@ -87,6 +87,7 @@ int main(int argc, char** argv) {
   fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ> gicp;
   // fast_gicp::FastVGICP<pcl::PointXYZ, pcl::PointXYZ> gicp;
   // fast_gicp::FastVGICPCuda<pcl::PointXYZ, pcl::PointXYZ> gicp;
+  // gicp.setResolution(1.0);
   // gicp.setNearestNeighborSearchMethod(fast_gicp::NearestNeighborMethod::GPU_RBF_KERNEL);
   gicp.setMaxCorrespondenceDistance(1.0);
 

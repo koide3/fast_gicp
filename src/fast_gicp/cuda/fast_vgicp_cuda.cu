@@ -24,6 +24,9 @@ FastVGICPCudaCore::FastVGICPCudaCore() {
 
   kernel_width = 0.25;
   kernel_max_dist = 3.0;
+
+  offsets.reset(new thrust::device_vector<Eigen::Vector3i>(1));
+  (*offsets)[0] = Eigen::Vector3i::Zero().eval();
 }
 FastVGICPCudaCore ::~FastVGICPCudaCore() {}
 
@@ -36,6 +39,61 @@ void FastVGICPCudaCore::set_kernel_params(double kernel_width, double kernel_max
   this->kernel_max_dist = kernel_max_dist;
 }
 
+void FastVGICPCudaCore::set_neighbor_search_method(fast_gicp::NeighborSearchMethod method, double radius) {
+  thrust::host_vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> h_offsets;
+
+  switch (method) {
+    default:
+      std::cerr << "here must not be reached" << std::endl;
+      abort();
+
+    case fast_gicp::NeighborSearchMethod::DIRECT1:
+      h_offsets.resize(1);
+      h_offsets[0] = Eigen::Vector3i::Zero();
+      break;
+
+    case fast_gicp::NeighborSearchMethod::DIRECT7:
+      h_offsets.resize(7);
+      h_offsets[0] = Eigen::Vector3i(0, 0, 0);
+      h_offsets[1] = Eigen::Vector3i(1, 0, 0);
+      h_offsets[2] = Eigen::Vector3i(-1, 0, 0);
+      h_offsets[3] = Eigen::Vector3i(0, 1, 0);
+      h_offsets[4] = Eigen::Vector3i(0, -1, 0);
+      h_offsets[5] = Eigen::Vector3i(0, 0, 1);
+      h_offsets[6] = Eigen::Vector3i(0, 0, -1);
+      break;
+
+    case fast_gicp::NeighborSearchMethod::DIRECT27:
+      h_offsets.reserve(27);
+      for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+          for (int k = 0; k < 3; k++) {
+            h_offsets.push_back(Eigen::Vector3i(i - 1, j - 1, k - 1));
+          }
+        }
+      }
+      break;
+
+    case fast_gicp::NeighborSearchMethod::DIRECT_RADIUS:
+      h_offsets.reserve(50);
+      int range = std::ceil(radius);
+      for (int i = -range; i <= range; i++) {
+        for (int j = -range; j <= range; j++) {
+          for (int k = -range; k <= range; k++) {
+            Eigen::Vector3i offset(i, j, k);
+            if(offset.cast<double>().norm() <= radius + 1e-3) {
+              h_offsets.push_back(offset);
+            }
+          }
+        }
+      }
+
+      break;
+  }
+
+  *offsets = h_offsets;
+}
+
 void FastVGICPCudaCore::swap_source_and_target() {
   source_points.swap(target_points);
   source_neighbors.swap(target_neighbors);
@@ -45,10 +103,7 @@ void FastVGICPCudaCore::swap_source_and_target() {
     return;
   }
 
-  if(!voxelmap) {
-    voxelmap.reset(new GaussianVoxelMap(resolution));
-  }
-  voxelmap->create_voxelmap(*target_points, *target_covariances);
+  create_target_voxelmap();
 }
 
 void FastVGICPCudaCore::set_source_cloud(const std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>>& cloud) {
@@ -163,10 +218,10 @@ void FastVGICPCudaCore::calculate_target_covariances_rbf(RegularizationMethod me
   covariance_regularization(*target_points, *target_covariances, method);
 }
 
-void FastVGICPCudaCore::get_voxel_correspondences(std::vector<int>& correspondences) const {
-  thrust::host_vector<int> corrs = *voxel_correspondences;
+void FastVGICPCudaCore::get_voxel_correspondences(std::vector<std::pair<int, int>>& correspondences) const {
+  thrust::host_vector<thrust::pair<int, int>> corrs = *voxel_correspondences;
   correspondences.resize(corrs.size());
-  std::copy(corrs.begin(), corrs.end(), correspondences.begin());
+  std::transform(corrs.begin(), corrs.end(), correspondences.begin(), [](const auto& x) { return std::make_pair(x.first, x.second); });
 }
 
 void FastVGICPCudaCore::get_voxel_num_points(std::vector<int>& num_points) const {
@@ -208,15 +263,24 @@ void FastVGICPCudaCore::create_target_voxelmap() {
 }
 
 void FastVGICPCudaCore::update_correspondences(const Eigen::Isometry3d& trans) {
+  thrust::device_vector<Eigen::Isometry3f> trans_ptr(1);
+  trans_ptr[0] = trans.cast<float>();
+
   if(voxel_correspondences == nullptr) {
-    voxel_correspondences.reset(new Indices(source_points->size()));
+    voxel_correspondences.reset(new Correspondences());
   }
   linearized_x = trans.cast<float>();
-  find_voxel_correspondences(*source_points, *voxelmap, linearized_x, *voxel_correspondences);
+  find_voxel_correspondences(*source_points, *voxelmap, trans_ptr.data(), *offsets, *voxel_correspondences);
 }
 
 double FastVGICPCudaCore::compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) const {
-  return compute_derivatives(*source_points, *source_covariances, *voxelmap, *voxel_correspondences, linearized_x, trans.cast<float>(), H, b);
+  thrust::host_vector<Eigen::Isometry3f, Eigen::aligned_allocator<Eigen::Isometry3f>> trans_(2);
+  trans_[0] = linearized_x;
+  trans_[1] = trans.cast<float>();
+
+  thrust::device_vector<Eigen::Isometry3f> trans_ptr = trans_;
+
+  return compute_derivatives(*source_points, *source_covariances, *voxelmap, *voxel_correspondences, trans_ptr.data(), trans_ptr.data() + 1, H, b);
 }
 
 }  // namespace cuda

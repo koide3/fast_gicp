@@ -43,7 +43,7 @@ struct svd_reconstruction_kernel {
 };
 
   struct covariance_regularization_svd {
-    __host__ __device__ thrust::pair<Eigen::Vector3f, Eigen::Matrix3f> operator()(Eigen::Matrix3f& cov) const {
+    __host__ __device__ void operator()(Eigen::Matrix3f& cov) const {
       Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eig;
       eig.computeDirect(cov);
 

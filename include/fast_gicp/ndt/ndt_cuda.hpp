@@ -10,6 +10,7 @@
 #include <pcl/registration/registration.h>
 #include <fast_gicp/gicp/lsq_registration.hpp>
 #include <fast_gicp/gicp/gicp_settings.hpp>
+#include <fast_gicp/ndt/ndt_settings.hpp>
 
 namespace fast_gicp {
 
@@ -41,6 +42,7 @@ public:
   NDTCuda();
   virtual ~NDTCuda() override;
 
+  void setDistanceMode(NDTDistanceMode mode);
   void setResolution(double resolution);
   void setNeighborSearchMethod(NeighborSearchMethod method, double radius = -1.0);
 

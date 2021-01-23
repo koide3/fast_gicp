@@ -75,18 +75,20 @@ struct compute_derivatives_kernel {
     Eigen::Matrix3f RCR = R_eval * cov_A * R_eval.transpose();
     Eigen::Matrix3f RCR_inv = (cov_B + RCR).inverse();
 
-    Eigen::Vector3f error = std::sqrt(num_points) * RCR_inv * (mean_B - transed_mean_A);
+    float w = sqrtf(num_points);
+    Eigen::Vector3f error = mean_B - transed_mean_A;
 
     Eigen::Matrix<float, 3, 6> dtdx0;
     dtdx0.block<3, 3>(0, 0) = skew_symmetric(transed_mean_A);
     dtdx0.block<3, 3>(0, 3) = -Eigen::Matrix3f::Identity();
 
-    Eigen::Matrix<float, 3, 6> J = std::sqrt(num_points) * RCR_inv * dtdx0;
+    Eigen::Matrix<float, 3, 6> J = dtdx0;
 
-    Eigen::Matrix<float, 6, 6> H = J.transpose() * J;
-    Eigen::Matrix<float, 6, 1> b = J.transpose() * error;
+    Eigen::Matrix<float, 6, 6> H = w * J.transpose() * RCR_inv * J;
+    Eigen::Matrix<float, 6, 1> b = w * J.transpose() * RCR_inv * error;
 
-    return thrust::make_tuple(error.squaredNorm(), H, b);
+    float err = w * error.transpose() * RCR_inv * error;
+    return thrust::make_tuple(err, H, b);
   }
 
   thrust::device_ptr<const Eigen::Isometry3f> trans_eval_ptr;
@@ -126,9 +128,10 @@ __host__ __device__ float compute_derivatives_kernel<float>::operator()(const th
   Eigen::Matrix3f RCR = R_eval * cov_A * R_eval.transpose();
   Eigen::Matrix3f RCR_inv = (cov_B + RCR).inverse();
 
-  Eigen::Vector3f error = std::sqrt(num_points) * RCR_inv * (mean_B - transed_mean_A);
+  float w = sqrtf(num_points);
+  Eigen::Vector3f error = mean_B - transed_mean_A;
 
-  return error.squaredNorm();
+  return w * error.transpose() * RCR_inv * error;
 }
 
 struct sum_errors_kernel {

@@ -17,6 +17,11 @@ template <typename PointSource, typename PointTarget>
 NDTCuda<PointSource, PointTarget>::~NDTCuda() {}
 
 template <typename PointSource, typename PointTarget>
+void NDTCuda<PointSource, PointTarget>::setDistanceMode(NDTDistanceMode mode) {
+  ndt_cuda_->set_distance_mode(mode);
+}
+
+template <typename PointSource, typename PointTarget>
 void NDTCuda<PointSource, PointTarget>::setResolution(double resolution) {
   ndt_cuda_->set_resolution(resolution);
 }

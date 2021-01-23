@@ -71,14 +71,7 @@ if(BUILD_apps)
     ${PCL_LIBRARIES}
     fast_gicp
   )
-
-  add_executable(ndt_test src/ndt_test.cpp)
-  add_dependencies(ndt_test fast_gicp)
-  target_link_libraries(ndt_test
-    ${PCL_LIBRARIES}
-    fast_gicp
-  )
-  endif()
+endif()
 
 ### CUDA ###
 if(BUILD_VGICP_CUDA)

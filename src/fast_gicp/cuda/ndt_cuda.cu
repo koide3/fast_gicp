@@ -7,12 +7,6 @@
 #include <fast_gicp/cuda/find_voxel_correspondences.cuh>
 #include <fast_gicp/cuda/ndt_compute_derivatives.cuh>
 
-#include <glk/cuda_magic_headers.hpp>
-#include <glk/pointcloud_buffer.hpp>
-#include <glk/pointcloud_buffer_cuda.hpp>
-#include <glk/primitives/primitives.hpp>
-#include <guik/viewer/light_viewer.hpp>
-
 namespace fast_gicp {
 namespace cuda {
 
@@ -24,10 +18,15 @@ NDTCudaCore::NDTCudaCore() {
   offsets.reset(new thrust::device_vector<Eigen::Vector3i>(1));
   (*offsets)[0] = Eigen::Vector3i::Zero().eval();
 
+  distance_mode = fast_gicp::NDTDistanceMode::D2D;
   set_neighbor_search_method(fast_gicp::NeighborSearchMethod::DIRECT7, 0.0);
 }
 
 NDTCudaCore::~NDTCudaCore() {}
+
+void NDTCudaCore::set_distance_mode(fast_gicp::NDTDistanceMode mode) {
+  this->distance_mode = mode;
+}
 
 void NDTCudaCore::set_resolution(double resolution) {
   this->resolution = resolution;
@@ -120,7 +119,7 @@ void NDTCudaCore::create_voxelmaps() {
 
 void NDTCudaCore::create_source_voxelmap() {
   assert(source_points);
-  if (source_voxelmap) {
+  if (source_voxelmap || distance_mode == fast_gicp::NDTDistanceMode::P2D) {
     return;
   }
 
@@ -148,21 +147,32 @@ void NDTCudaCore::update_correspondences(const Eigen::Isometry3d& trans) {
     correspondences.reset(new Correspondences());
   }
   linearized_x = trans.cast<float>();
-  find_voxel_correspondences(source_voxelmap->voxel_means, *target_voxelmap, trans_ptr.data(), *offsets, *correspondences);
+
+  switch (distance_mode) {
+    case fast_gicp::NDTDistanceMode::P2D:
+      find_voxel_correspondences(*source_points, *target_voxelmap, trans_ptr.data(), *offsets, *correspondences);
+      break;
+
+    case fast_gicp::NDTDistanceMode::D2D:
+      find_voxel_correspondences(source_voxelmap->voxel_means, *target_voxelmap, trans_ptr.data(), *offsets, *correspondences);
+      break;
+  }
 }
 
 double NDTCudaCore::compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) const {
-  auto viewer = guik::LightViewer::instance();
-  viewer->update_drawable("target", glk::create_point_cloud_buffer(*target_points), guik::FlatColor(Eigen::Vector4f::UnitX()));
-  viewer->update_drawable("source", glk::create_point_cloud_buffer(*source_points), guik::FlatColor(Eigen::Vector4f::UnitY(), trans.cast<float>()));
-  viewer->spin_until_click();
-
   thrust::host_vector<Eigen::Isometry3f, Eigen::aligned_allocator<Eigen::Isometry3f>> trans_(2);
   trans_[0] = linearized_x;
   trans_[1] = trans.cast<float>();
 
   thrust::device_vector<Eigen::Isometry3f> trans_ptr = trans_;
-  return ndt_compute_derivatives(*source_voxelmap, *target_voxelmap, *correspondences, trans_ptr.data(), trans_ptr.data() + 1, H, b);
+
+  switch (distance_mode) {
+    case fast_gicp::NDTDistanceMode::P2D:
+      return p2d_ndt_compute_derivatives(*target_voxelmap, *source_points, *correspondences, trans_ptr.data(), trans_ptr.data() + 1, H, b);
+
+    case fast_gicp::NDTDistanceMode::D2D:
+      return d2d_ndt_compute_derivatives(*target_voxelmap, *source_voxelmap, *correspondences, trans_ptr.data(), trans_ptr.data() + 1, H, b);
+  }
 }
 
 }  // namespace cuda

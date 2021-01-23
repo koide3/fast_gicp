@@ -14,6 +14,7 @@
 #include <fast_gicp/gicp/fast_vgicp.hpp>
 
 #ifdef USE_VGICP_CUDA
+#include <fast_gicp/ndt/ndt_cuda.hpp>
 #include <fast_gicp/gicp/fast_vgicp_cuda.hpp>
 #endif
 
@@ -177,6 +178,16 @@ int main(int argc, char** argv) {
   test(vgicp, target_cloud, source_cloud);
 
 #ifdef USE_VGICP_CUDA
+  std::cout << "--- ndt_cuda (P2D) ---" << std::endl;
+  fast_gicp::NDTCuda<pcl::PointXYZ, pcl::PointXYZ> ndt_cuda;
+  ndt_cuda.setResolution(1.0);
+  ndt_cuda.setDistanceMode(fast_gicp::NDTDistanceMode::P2D);
+  test(ndt_cuda, target_cloud, source_cloud);
+
+  std::cout << "--- ndt_cuda (D2D) ---" << std::endl;
+  ndt_cuda.setDistanceMode(fast_gicp::NDTDistanceMode::D2D);
+  test(ndt_cuda, target_cloud, source_cloud);
+
   std::cout << "--- vgicp_cuda (parallel_kdtree) ---" << std::endl;
   fast_gicp::FastVGICPCuda<pcl::PointXYZ, pcl::PointXYZ> vgicp_cuda;
   vgicp_cuda.setResolution(1.0);

@@ -6,6 +6,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <fast_gicp/ndt/ndt_settings.hpp>
 #include <fast_gicp/gicp/gicp_settings.hpp>
 
 namespace thrust {
@@ -36,6 +37,7 @@ public:
   NDTCudaCore();
   ~NDTCudaCore();
 
+  void set_distance_mode(fast_gicp::NDTDistanceMode mode);
   void set_resolution(double resolution);
   void set_neighbor_search_method(fast_gicp::NeighborSearchMethod method, double radius);
 
@@ -51,6 +53,7 @@ public:
   double compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) const;
 
 public:
+  fast_gicp::NDTDistanceMode distance_mode;
   double resolution;
   std::unique_ptr<VoxelCoordinates> offsets;
 

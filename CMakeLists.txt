@@ -11,7 +11,7 @@ set(CMAKE_CXX_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
 
 set(CMAKE_BUILD_TYPE "Release")
 
-find_package(catkin)
+find_package(catkin COMPONENTS iridescence)
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
 
@@ -71,7 +71,14 @@ if(BUILD_apps)
     ${PCL_LIBRARIES}
     fast_gicp
   )
-endif()
+
+  add_executable(ndt_test src/ndt_test.cpp)
+  add_dependencies(ndt_test fast_gicp)
+  target_link_libraries(ndt_test
+    ${PCL_LIBRARIES}
+    fast_gicp
+  )
+  endif()
 
 ### CUDA ###
 if(BUILD_VGICP_CUDA)
@@ -88,18 +95,24 @@ if(BUILD_VGICP_CUDA)
     src/fast_gicp/cuda/find_voxel_correspondences.cu
     src/fast_gicp/cuda/compute_derivatives.cu
     src/fast_gicp/cuda/compute_mahalanobis.cu
-
+    src/fast_gicp/cuda/ndt_cuda.cu
+    src/fast_gicp/cuda/ndt_compute_derivatives.cu
   )
   target_include_directories(fast_vgicp_cuda PRIVATE
     include
     thirdparty/Eigen
     thirdparty/nvbio
+    ${catkin_INCLUDE_DIRS}
+  )
+  target_link_libraries(fast_vgicp_cuda
+    ${catkin_LIBRARIES}
   )
   cuda_add_cublas_to_target(fast_vgicp_cuda)
 
   # add vgicp_cuda to libfast_gicp
   target_sources(fast_gicp PRIVATE
     src/fast_gicp/gicp/fast_vgicp_cuda.cpp
+    src/fast_gicp/ndt/ndt_cuda.cpp
   )
   target_link_libraries(fast_gicp
     fast_vgicp_cuda

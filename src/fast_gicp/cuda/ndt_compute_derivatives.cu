@@ -7,6 +7,16 @@ namespace cuda {
 
 namespace {
 
+__host__ __device__ float huber(float k, float x) {
+  float abs_x = fabsf(x);
+  return abs_x <= k ? 1.0 : k / abs_x;
+}
+
+__host__ __device__ float cauchy(float k, float x) {
+  float k_sq = k * k;
+  return k_sq / (k_sq + x * x);
+}
+
 // skew symmetric matrix
 __host__ __device__ Eigen::Matrix3f skew_symmetric(const Eigen::Vector3f& x) {
   Eigen::Matrix3f skew = Eigen::Matrix3f::Zero();
@@ -29,6 +39,7 @@ struct p2d_ndt_compute_derivatives_kernel {
   : trans_eval_ptr(x_eval_ptr),
     trans_ptr(x_ptr),
     src_means_ptr(source_points.data()),
+    voxelmap_info_ptr(target_voxelmap.voxelmap_info_ptr.data()),
     voxel_num_points_ptr(target_voxelmap.num_points.data()),
     voxel_means_ptr(target_voxelmap.voxel_means.data()),
     voxel_covs_ptr(target_voxelmap.voxel_covs.data()) {}
@@ -62,16 +73,17 @@ struct p2d_ndt_compute_derivatives_kernel {
 
     Eigen::Vector3f error = mean_B - transed_mean_A;
 
+    float w = cauchy(thrust::raw_pointer_cast(voxelmap_info_ptr)->voxel_resolution, error.norm());
+    float err = w * error.transpose() * RCR_inv * error;
+
     Eigen::Matrix<float, 3, 6> dtdx0;
     dtdx0.block<3, 3>(0, 0) = skew_symmetric(transed_mean_A);
     dtdx0.block<3, 3>(0, 3) = -Eigen::Matrix3f::Identity();
 
     Eigen::Matrix<float, 3, 6> J = dtdx0;
 
-    Eigen::Matrix<float, 6, 6> H = J.transpose() * RCR_inv * J;
-    Eigen::Matrix<float, 6, 1> b = J.transpose() * RCR_inv * error;
-
-    float err = error.transpose() * RCR_inv * error;
+    Eigen::Matrix<float, 6, 6> H = w * J.transpose() * RCR_inv * J;
+    Eigen::Matrix<float, 6, 1> b = w * J.transpose() * RCR_inv * error;
 
     return thrust::make_tuple(err, H, b);
   }
@@ -81,6 +93,7 @@ struct p2d_ndt_compute_derivatives_kernel {
 
   thrust::device_ptr<const Eigen::Vector3f> src_means_ptr;
 
+  thrust::device_ptr<const VoxelMapInfo> voxelmap_info_ptr;
   thrust::device_ptr<const int> voxel_num_points_ptr;
   thrust::device_ptr<const Eigen::Vector3f> voxel_means_ptr;
   thrust::device_ptr<const Eigen::Matrix3f> voxel_covs_ptr;
@@ -96,6 +109,7 @@ struct d2d_ndt_compute_derivatives_kernel {
     trans_ptr(x_ptr),
     src_means_ptr(source_voxelmap.voxel_means.data()),
     src_covs_ptr(source_voxelmap.voxel_covs.data()),
+    voxelmap_info_ptr(target_voxelmap.voxelmap_info_ptr.data()),
     voxel_num_points_ptr(target_voxelmap.num_points.data()),
     voxel_means_ptr(target_voxelmap.voxel_means.data()),
     voxel_covs_ptr(target_voxelmap.voxel_covs.data()) {}
@@ -131,16 +145,17 @@ struct d2d_ndt_compute_derivatives_kernel {
 
     Eigen::Vector3f error = mean_B - transed_mean_A;
 
+    float w = cauchy(thrust::raw_pointer_cast(voxelmap_info_ptr)->voxel_resolution, error.norm());
+    float err = w * error.transpose() * RCR_inv * error;
+
     Eigen::Matrix<float, 3, 6> dtdx0;
     dtdx0.block<3, 3>(0, 0) = skew_symmetric(transed_mean_A);
     dtdx0.block<3, 3>(0, 3) = -Eigen::Matrix3f::Identity();
 
     Eigen::Matrix<float, 3, 6> J = dtdx0;
 
-    Eigen::Matrix<float, 6, 6> H = J.transpose() * RCR_inv * J;
-    Eigen::Matrix<float, 6, 1> b = J.transpose() * RCR_inv * error;
-
-    float err = error.transpose() * RCR_inv * error;
+    Eigen::Matrix<float, 6, 6> H = w * J.transpose() * RCR_inv * J;
+    Eigen::Matrix<float, 6, 1> b = w * J.transpose() * RCR_inv * error;
 
     return thrust::make_tuple(err, H, b);
   }
@@ -151,6 +166,7 @@ struct d2d_ndt_compute_derivatives_kernel {
   thrust::device_ptr<const Eigen::Vector3f> src_means_ptr;
   thrust::device_ptr<const Eigen::Matrix3f> src_covs_ptr;
 
+  thrust::device_ptr<const VoxelMapInfo> voxelmap_info_ptr;
   thrust::device_ptr<const int> voxel_num_points_ptr;
   thrust::device_ptr<const Eigen::Vector3f> voxel_means_ptr;
   thrust::device_ptr<const Eigen::Matrix3f> voxel_covs_ptr;

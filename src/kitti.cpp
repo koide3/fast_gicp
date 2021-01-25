@@ -15,33 +15,32 @@
 #include <fast_gicp/gicp/fast_vgicp.hpp>
 
 #ifdef USE_VGICP_CUDA
+#include <fast_gicp/ndt/ndt_cuda.hpp>
 #include <fast_gicp/gicp/fast_vgicp_cuda.hpp>
 #endif
 
 class KittiLoader {
 public:
   KittiLoader(const std::string& dataset_path) : dataset_path(dataset_path) {
-    for(num_frames = 0;; num_frames++) {
+    for (num_frames = 0;; num_frames++) {
       std::string filename = (boost::format("%s/%06d.bin") % dataset_path % num_frames).str();
-      if(!boost::filesystem::exists(filename)) {
+      if (!boost::filesystem::exists(filename)) {
         break;
       }
     }
 
-    if(num_frames == 0) {
+    if (num_frames == 0) {
       std::cerr << "error: no files in " << dataset_path << std::endl;
     }
   }
   ~KittiLoader() {}
 
-  size_t size() const {
-    return num_frames;
-  }
+  size_t size() const { return num_frames; }
 
   pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud(size_t i) const {
     std::string filename = (boost::format("%s/%06d.bin") % dataset_path % i).str();
     FILE* file = fopen(filename.c_str(), "rb");
-    if(!file) {
+    if (!file) {
       std::cerr << "error: failed to load " << filename << std::endl;
       return nullptr;
     }
@@ -53,7 +52,7 @@ public:
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
     cloud->resize(num_points);
 
-    for(int i = 0; i < num_points; i++) {
+    for (int i = 0; i < num_points; i++) {
       auto& pt = cloud->at(i);
       pt.x = buffer[i * 4];
       pt.y = buffer[i * 4 + 1];
@@ -70,7 +69,7 @@ private:
 };
 
 int main(int argc, char** argv) {
-  if(argc < 2) {
+  if (argc < 2) {
     std::cout << "usage: gicp_kitti /your/kitti/path/sequences/00/velodyne" << std::endl;
     return 0;
   }
@@ -87,6 +86,7 @@ int main(int argc, char** argv) {
   fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ> gicp;
   // fast_gicp::FastVGICP<pcl::PointXYZ, pcl::PointXYZ> gicp;
   // fast_gicp::FastVGICPCuda<pcl::PointXYZ, pcl::PointXYZ> gicp;
+  // fast_gicp::NDTCuda<pcl::PointXYZ, pcl::PointXYZ> gicp;
   // gicp.setResolution(1.0);
   // gicp.setNearestNeighborSearchMethod(fast_gicp::NearestNeighborMethod::GPU_RBF_KERNEL);
   gicp.setMaxCorrespondenceDistance(1.0);
@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
   boost::circular_buffer<std::chrono::high_resolution_clock::time_point> stamps(30);
   stamps.push_back(std::chrono::high_resolution_clock::now());
 
-  for(int i = 1; i < kitti.size(); i++) {
+  for (int i = 1; i < kitti.size(); i++) {
     // set the current frame as source
     voxelgrid.setInputCloud(kitti.cloud(i));
     pcl::PointCloud<pcl::PointXYZ>::Ptr source(new pcl::PointCloud<pcl::PointXYZ>);
@@ -139,10 +139,10 @@ int main(int argc, char** argv) {
 
   // save the estimated poses
   std::ofstream ofs("/tmp/traj.txt");
-  for(const auto& pose : poses) {
-    for(int i = 0; i < 3; i++) {
-      for(int j = 0; j < 4; j++) {
-        if(i || j) {
+  for (const auto& pose : poses) {
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 4; j++) {
+        if (i || j) {
           ofs << " ";
         }
 

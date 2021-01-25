@@ -6,25 +6,22 @@
 
 namespace fast_gicp {
 
-template<typename PointSource, typename PointTarget>
-FastGICPSingleThread<PointSource, PointTarget>::FastGICPSingleThread()
-: FastGICP<PointSource, PointTarget>()
-{
+template <typename PointSource, typename PointTarget>
+FastGICPSingleThread<PointSource, PointTarget>::FastGICPSingleThread() : FastGICP<PointSource, PointTarget>() {
   this->reg_name_ = "FastGICPSingleThread";
   this->num_threads_ = 1;
 }
 
-template<typename PointSource, typename PointTarget>
+template <typename PointSource, typename PointTarget>
 FastGICPSingleThread<PointSource, PointTarget>::~FastGICPSingleThread() {}
 
-
-template<typename PointSource, typename PointTarget>
+template <typename PointSource, typename PointTarget>
 void FastGICPSingleThread<PointSource, PointTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
   anchors_.clear();
   FastGICP<PointSource, PointTarget>::computeTransformation(output, guess);
 }
 
-template<typename PointSource, typename PointTarget>
+template <typename PointSource, typename PointTarget>
 void FastGICPSingleThread<PointSource, PointTarget>::update_correspondences(const Eigen::Isometry3d& x) {
   assert(source_covs_.size() == input_->size());
   assert(target_covs_.size() == target_->size());
@@ -42,16 +39,16 @@ void FastGICPSingleThread<PointSource, PointTarget>::update_correspondences(cons
   std::vector<int> k_indices;
   std::vector<float> k_sq_dists;
 
-  for(int i = 0; i < input_->size(); i++) {
+  for (int i = 0; i < input_->size(); i++) {
     PointTarget pt;
     pt.getVector4fMap() = trans * input_->at(i).getVector4fMap();
 
-    if(!is_first) {
+    if (!is_first) {
       double d = (pt.getVector4fMap() - anchors_[i]).norm();
       double max_first = std::sqrt(sq_distances_[i]) + d;
       double min_second = std::sqrt(second_sq_distances_[i]) - d;
 
-      if(max_first < min_second) {
+      if (max_first < min_second) {
         continue;
       }
     }
@@ -63,7 +60,7 @@ void FastGICPSingleThread<PointSource, PointTarget>::update_correspondences(cons
     second_sq_distances_[i] = k_sq_dists[1];
     anchors_[i] = pt.getVector4fMap();
 
-    if(correspondences_[i] < 0) {
+    if (correspondences_[i] < 0) {
       continue;
     }
 
@@ -75,21 +72,22 @@ void FastGICPSingleThread<PointSource, PointTarget>::update_correspondences(cons
     RCR(3, 3) = 1.0;
 
     mahalanobis_[i] = RCR.inverse();
+    mahalanobis_[i](3, 3) = 0.0;
   }
 }
 
-template<typename PointSource, typename PointTarget>
+template <typename PointSource, typename PointTarget>
 double FastGICPSingleThread<PointSource, PointTarget>::linearize(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) {
-  if(H && b) {
+  if (H && b) {
     update_correspondences(trans);
     H->setZero();
     b->setZero();
   }
 
   double sum_errors = 0.0;
-  for(int i = 0; i < input_->size(); i++) {
+  for (int i = 0; i < input_->size(); i++) {
     int target_index = correspondences_[i];
-    if(target_index < 0) {
+    if (target_index < 0) {
       continue;
     }
 
@@ -100,11 +98,11 @@ double FastGICPSingleThread<PointSource, PointTarget>::linearize(const Eigen::Is
     const auto& cov_B = target_covs_[target_index];
 
     const Eigen::Vector4d transed_mean_A = trans * mean_A;
-    const Eigen::Vector4d error = mahalanobis_[i] * (mean_B - transed_mean_A);
+    const Eigen::Vector4d error = mean_B - transed_mean_A;
 
-    sum_errors += error.squaredNorm();
+    sum_errors += error.transpose() * mahalanobis_[i] * error;
 
-    if(H == nullptr || b == nullptr) {
+    if (H == nullptr || b == nullptr) {
       continue;
     }
 
@@ -112,16 +110,16 @@ double FastGICPSingleThread<PointSource, PointTarget>::linearize(const Eigen::Is
     dtdx0.block<3, 3>(0, 0) = skewd(transed_mean_A.head<3>());
     dtdx0.block<3, 3>(0, 3) = -Eigen::Matrix3d::Identity();
 
-    Eigen::Matrix<double, 4, 6> jlossexp = mahalanobis_[i] * dtdx0;
+    Eigen::Matrix<double, 4, 6> jlossexp = dtdx0;
 
-    (*H) += jlossexp.transpose() * jlossexp;
-    (*b) += jlossexp.transpose() * error;
+    (*H) += jlossexp.transpose() * mahalanobis_[i] * jlossexp;
+    (*b) += jlossexp.transpose() * mahalanobis_[i] * error;
   }
 
   return sum_errors;
 }
 
-template<typename PointSource, typename PointTarget>
+template <typename PointSource, typename PointTarget>
 double FastGICPSingleThread<PointSource, PointTarget>::compute_error(const Eigen::Isometry3d& trans) {
   return linearize(trans, nullptr, nullptr);
 }

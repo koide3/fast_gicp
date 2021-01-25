@@ -11,11 +11,11 @@
 #include <fast_gicp/cuda/gaussian_voxelmap.cuh>
 
 namespace fast_gicp {
-  namespace cuda {
+namespace cuda {
 
-namespace  {
+namespace {
 
-template<typename T>
+template <typename T>
 struct compute_derivatives_kernel {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -34,8 +34,7 @@ struct compute_derivatives_kernel {
     voxel_covs_ptr(voxelmap.voxel_covs.data()) {}
 
   // skew symmetric matrix
-  __host__ __device__
-  Eigen::Matrix3f skew_symmetric(const Eigen::Vector3f& x) const {
+  __host__ __device__ Eigen::Matrix3f skew_symmetric(const Eigen::Vector3f& x) const {
     Eigen::Matrix3f skew = Eigen::Matrix3f::Zero();
     skew(0, 1) = -x[2];
     skew(0, 2) = x[1];
@@ -48,12 +47,11 @@ struct compute_derivatives_kernel {
   }
 
   // calculate derivatives
-  __host__ __device__
-  T operator() (const thrust::pair<int, int>& correspondence) const {
+  __host__ __device__ T operator()(const thrust::pair<int, int>& correspondence) const {
     const Eigen::Vector3f& mean_A = thrust::raw_pointer_cast(src_means_ptr)[correspondence.first];
     const Eigen::Matrix3f& cov_A = thrust::raw_pointer_cast(src_covs_ptr)[correspondence.first];
 
-    if(correspondence.second < 0) {
+    if (correspondence.second < 0) {
       return thrust::make_tuple(0.0f, Eigen::Matrix<float, 6, 6>::Zero().eval(), Eigen::Matrix<float, 6, 1>::Zero().eval());
     }
 
@@ -61,7 +59,7 @@ struct compute_derivatives_kernel {
     const Eigen::Vector3f& mean_B = thrust::raw_pointer_cast(voxel_means_ptr)[correspondence.second];
     const Eigen::Matrix3f& cov_B = thrust::raw_pointer_cast(voxel_covs_ptr)[correspondence.second];
 
-    if(num_points <= 0) {
+    if (num_points <= 0) {
       return thrust::make_tuple(0.0f, Eigen::Matrix<float, 6, 6>::Zero().eval(), Eigen::Matrix<float, 6, 1>::Zero().eval());
     }
 
@@ -77,18 +75,20 @@ struct compute_derivatives_kernel {
     Eigen::Matrix3f RCR = R_eval * cov_A * R_eval.transpose();
     Eigen::Matrix3f RCR_inv = (cov_B + RCR).inverse();
 
-    Eigen::Vector3f error = std::sqrt(num_points) * RCR_inv * (mean_B - transed_mean_A);
+    float w = sqrtf(num_points);
+    Eigen::Vector3f error = mean_B - transed_mean_A;
 
     Eigen::Matrix<float, 3, 6> dtdx0;
     dtdx0.block<3, 3>(0, 0) = skew_symmetric(transed_mean_A);
     dtdx0.block<3, 3>(0, 3) = -Eigen::Matrix3f::Identity();
 
-    Eigen::Matrix<float, 3, 6> J = std::sqrt(num_points) * RCR_inv * dtdx0;
+    Eigen::Matrix<float, 3, 6> J = dtdx0;
 
-    Eigen::Matrix<float, 6, 6> H = J.transpose() * J;
-    Eigen::Matrix<float, 6, 1> b = J.transpose() * error;
+    Eigen::Matrix<float, 6, 6> H = w * J.transpose() * RCR_inv * J;
+    Eigen::Matrix<float, 6, 1> b = w * J.transpose() * RCR_inv * error;
 
-    return thrust::make_tuple(error.squaredNorm(), H, b);
+    float err = w * error.transpose() * RCR_inv * error;
+    return thrust::make_tuple(err, H, b);
   }
 
   thrust::device_ptr<const Eigen::Isometry3f> trans_eval_ptr;
@@ -108,7 +108,7 @@ __host__ __device__ float compute_derivatives_kernel<float>::operator()(const th
   const Eigen::Matrix3f& cov_A = thrust::raw_pointer_cast(src_covs_ptr)[correspondence.first];
   const int voxel_index = correspondence.second;
 
-  if(voxel_index < 0) {
+  if (voxel_index < 0) {
     return 0.0f;
   }
 
@@ -128,30 +128,25 @@ __host__ __device__ float compute_derivatives_kernel<float>::operator()(const th
   Eigen::Matrix3f RCR = R_eval * cov_A * R_eval.transpose();
   Eigen::Matrix3f RCR_inv = (cov_B + RCR).inverse();
 
-  Eigen::Vector3f error = std::sqrt(num_points) * RCR_inv * (mean_B - transed_mean_A);
+  float w = sqrtf(num_points);
+  Eigen::Vector3f error = mean_B - transed_mean_A;
 
-  return error.squaredNorm();
+  return w * error.transpose() * RCR_inv * error;
 }
 
 struct sum_errors_kernel {
-  template<typename Tuple>
-  __host__ __device__ Tuple operator() (const Tuple& lhs, const Tuple& rhs) {
-    return thrust::make_tuple(
-      thrust::get<0>(lhs) + thrust::get<0>(rhs),
-      thrust::get<1>(lhs) + thrust::get<1>(rhs),
-      thrust::get<2>(lhs) + thrust::get<2>(rhs)
-    );
+  template <typename Tuple>
+  __host__ __device__ Tuple operator()(const Tuple& lhs, const Tuple& rhs) {
+    return thrust::make_tuple(thrust::get<0>(lhs) + thrust::get<0>(rhs), thrust::get<1>(lhs) + thrust::get<1>(rhs), thrust::get<2>(lhs) + thrust::get<2>(rhs));
   }
 };
 
-template<>
-__host__ __device__ float sum_errors_kernel::operator() (const float& lhs, const float& rhs) {
+template <>
+__host__ __device__ float sum_errors_kernel::operator()(const float& lhs, const float& rhs) {
   return lhs + rhs;
 }
 
-} // namespace
-
-int count = 0;
+}  // namespace
 
 double compute_derivatives(
   const thrust::device_vector<Eigen::Vector3f>& src_points,
@@ -162,8 +157,7 @@ double compute_derivatives(
   const thrust::device_ptr<const Eigen::Isometry3f>& x_ptr,
   Eigen::Matrix<double, 6, 6>* H,
   Eigen::Matrix<double, 6, 1>* b) {
-
-  if(H == nullptr || b == nullptr) {
+  if (H == nullptr || b == nullptr) {
     float sum_errors = thrust::transform_reduce(
       voxel_correspondences.begin(),
       voxel_correspondences.end(),
@@ -181,12 +175,12 @@ double compute_derivatives(
     thrust::make_tuple(0.0f, Eigen::Matrix<float, 6, 6>::Zero().eval(), Eigen::Matrix<float, 6, 1>::Zero().eval()),
     sum_errors_kernel());
 
-  if(H && b) {
+  if (H && b) {
     *H = thrust::get<1>(sum_errors).cast<double>();
     *b = thrust::get<2>(sum_errors).cast<double>();
   }
 
   return thrust::get<0>(sum_errors);
 }
-  }
+}  // namespace cuda
 }  // namespace fast_gicp

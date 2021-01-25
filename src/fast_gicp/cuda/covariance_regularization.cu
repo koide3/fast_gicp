@@ -42,22 +42,22 @@ struct svd_reconstruction_kernel {
   }
 };
 
-  struct covariance_regularization_svd {
-    __host__ __device__ void operator()(Eigen::Matrix3f& cov) const {
-      Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eig;
-      eig.computeDirect(cov);
+struct covariance_regularization_svd {
+  __host__ __device__ void operator()(Eigen::Matrix3f& cov) const {
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eig;
+    eig.computeDirect(cov);
 
-      // why this doen't work...???
-      // cov = eig.eigenvectors() * values.asDiagonal() * eig.eigenvectors().inverse();
-      Eigen::Matrix3f values = Eigen::Vector3f(1e-3, 1, 1).asDiagonal();
-      Eigen::Matrix3f v_inv = eig.eigenvectors().inverse();
-      cov = eig.eigenvectors() * values * v_inv;
+    // why this doen't work...???
+    // cov = eig.eigenvectors() * values.asDiagonal() * eig.eigenvectors().inverse();
+    Eigen::Matrix3f values = Eigen::Vector3f(1e-3, 1, 1).asDiagonal();
+    Eigen::Matrix3f v_inv = eig.eigenvectors().inverse();
+    cov = eig.eigenvectors() * values * v_inv;
 
-      // JacobiSVD is not supported on CUDA
-      // Eigen::JacobiSVD(cov, Eigen::ComputeFullU | Eigen::ComputeFullV);
-      // Eigen::Vector3f values(1, 1, 1e-3);
-      // cov = svd.matrixU() * values.asDiagonal() * svd.matrixV().transpose();
-    }
+    // JacobiSVD is not supported on CUDA
+    // Eigen::JacobiSVD(cov, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    // Eigen::Vector3f values(1, 1, 1e-3);
+    // cov = svd.matrixU() * values.asDiagonal() * svd.matrixV().transpose();
+  }
 };
 
 struct covariance_regularization_frobenius {
@@ -69,6 +69,23 @@ struct covariance_regularization_frobenius {
     cov = C_norm;
   }
 };
+
+struct covariance_regularization_mineig {
+  __host__ __device__ thrust::tuple<Eigen::Vector3f, Eigen::Vector3f, Eigen::Matrix3f> operator()(Eigen::Matrix3f& cov) const {
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eig;
+    eig.computeDirect(cov);
+
+    Eigen::Vector3f values = eig.eigenvalues();
+    for (int i = 0; i < 3; i++) {
+      values[i] = fmaxf(1e-3f, values[i]);
+    }
+
+    Eigen::Matrix3f v_diag = values.asDiagonal();
+    Eigen::Matrix3f v_inv = eig.eigenvectors().inverse();
+    cov = eig.eigenvectors() * v_diag * v_inv;
+  }
+};
+
 }  // namespace
 
 void covariance_regularization(thrust::device_vector<Eigen::Vector3f>& means, thrust::device_vector<Eigen::Matrix3f>& covs, RegularizationMethod method) {
@@ -92,6 +109,8 @@ void covariance_regularization(thrust::device_vector<Eigen::Vector3f>& means, th
     covs = std::move(covs_);
   } else if (method == RegularizationMethod::FROBENIUS) {
     thrust::for_each(covs.begin(), covs.end(), covariance_regularization_frobenius());
+  } else if (method == RegularizationMethod::MIN_EIG) {
+    thrust::for_each(covs.begin(), covs.end(), covariance_regularization_mineig());
   } else {
     std::cerr << "unimplemented covariance regularization method was selected!!" << std::endl;
   }

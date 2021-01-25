@@ -13,6 +13,7 @@
 #include <fast_gicp/gicp/fast_gicp_st.hpp>
 #include <fast_gicp/gicp/fast_vgicp.hpp>
 #ifdef USE_VGICP_CUDA
+#include <fast_gicp/ndt/ndt_cuda.hpp>
 #include <fast_gicp/gicp/fast_vgicp_cuda.hpp>
 #endif
 
@@ -24,7 +25,7 @@ public:
   GICPTestBase() {}
 
   virtual void SetUp() {
-    if(!load(data_directory)) {
+    if (!load(data_directory)) {
       exit(1);
     }
   }
@@ -33,12 +34,12 @@ public:
     relative_pose.setIdentity();
 
     std::ifstream ifs(data_directory + "/relative.txt");
-    if(!ifs) {
+    if (!ifs) {
       return false;
     }
 
-    for(int i = 0; i < 4; i++) {
-      for(int j = 0; j < 4; j++) {
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
         ifs >> relative_pose(i, j);
       }
     }
@@ -47,7 +48,7 @@ public:
     auto source = pcl::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
     pcl::io::loadPCDFile(data_directory + "/251370668.pcd", *target);
     pcl::io::loadPCDFile(data_directory + "/251371071.pcd", *source);
-    if(target->empty() || source->empty()) {
+    if (target->empty() || source->empty()) {
       return true;
     }
 
@@ -99,19 +100,25 @@ public:
     std::string method = std::get<0>(GetParam());
     int num_threads = std::get<1>(GetParam()) ? 4 : 1;
 
-    if(method == "GICP") {
+    if (method == "GICP") {
       auto gicp = pcl::make_shared<fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ>>();
       gicp->setNumThreads(num_threads);
       gicp->swapSourceAndTarget();
       return gicp;
-    } else if(method == "VGICP") {
+    } else if (method == "VGICP") {
       auto vgicp = pcl::make_shared<fast_gicp::FastVGICP<pcl::PointXYZ, pcl::PointXYZ>>();
       vgicp->setNumThreads(num_threads);
       return vgicp;
-    } else if(method == "VGICP_CUDA") {
+    } else if (method == "VGICP_CUDA") {
 #ifdef USE_VGICP_CUDA
       auto vgicp = pcl::make_shared<fast_gicp::FastVGICPCuda<pcl::PointXYZ, pcl::PointXYZ>>();
       return vgicp;
+#endif
+      return nullptr;
+    } else if (method == "NDT_CUDA") {
+#ifdef USE_VGICP_CUDA
+      auto ndt = pcl::make_shared<fast_gicp::NDTCuda<pcl::PointXYZ, pcl::PointXYZ>>();
+      return ndt;
 #endif
       return nullptr;
     }
@@ -122,7 +129,7 @@ public:
 
   void swap_source_and_target(pcl::Registration<pcl::PointXYZ, pcl::PointXYZ>::Ptr reg) {
     fast_gicp::LsqRegistration<pcl::PointXYZ, pcl::PointXYZ>* lsq_reg = dynamic_cast<fast_gicp::LsqRegistration<pcl::PointXYZ, pcl::PointXYZ>*>(reg.get());
-    if(lsq_reg != nullptr) {
+    if (lsq_reg != nullptr) {
       lsq_reg->swapSourceAndTarget();
       return;
     }
@@ -131,7 +138,7 @@ public:
   }
 };
 
-INSTANTIATE_TEST_SUITE_P(AlignmentTest2, AlignmentTest, testing::Combine(testing::Values("GICP", "VGICP", "VGICP_CUDA"), testing::Bool()), [](const auto& info) {
+INSTANTIATE_TEST_SUITE_P(AlignmentTest2, AlignmentTest, testing::Combine(testing::Values("GICP", "VGICP", "VGICP_CUDA", "NDT_CUDA"), testing::Bool()), [](const auto& info) {
   std::stringstream sst;
   sst << std::get<0>(info.param) << (std::get<1>(info.param) ? "_MT" : "_ST");
   return sst.str();
@@ -142,7 +149,7 @@ TEST_P(AlignmentTest, test) {
   const double r_tol = 1.0 * M_PI / 180.0;
 
   pcl::Registration<pcl::PointXYZ, pcl::PointXYZ>::Ptr reg = create_reg();
-  if(reg == nullptr) {
+  if (reg == nullptr) {
     std::cout << "[          ] SKIP TEST" << std::endl;
     return;
   }

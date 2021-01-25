@@ -44,7 +44,9 @@ struct p2d_ndt_compute_derivatives_kernel {
     voxel_means_ptr(target_voxelmap.voxel_means.data()),
     voxel_covs_ptr(target_voxelmap.voxel_covs.data()) {}
 
-  // calculate derivatives
+  // Here, we use simple point-to-distribution MLE distance equivalent to [Biber, IROS2003]
+  // Because this formulation can be more sensitive to outliers compared to another formulation based on
+  // Gaussian + uniform distribution [Magnusson, 2009], we use some robust kernels to filter out outliers
   __host__ __device__ thrust::tuple<float, Eigen::Matrix<float, 6, 6>, Eigen::Matrix<float, 6, 1>> operator()(const thrust::pair<int, int>& correspondence) const {
     const Eigen::Vector3f& mean_A = thrust::raw_pointer_cast(src_means_ptr)[correspondence.first];
 

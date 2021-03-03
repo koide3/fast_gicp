@@ -39,7 +39,7 @@ cd .. && catkin_make -DCMAKE_BUILD_TYPE=Release
 ### Non-ROS
 ```bash
 git clone https://github.com/SMRT-AIST/fast_gicp --recursive
-mkdir fast_gicp/build && fast_gicp/build
+mkdir fast_gicp/build && cd fast_gicp/build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 # enable cuda-based implementations
 # cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_VGICP_CUDA=ON

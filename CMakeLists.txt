@@ -4,6 +4,7 @@ project(fast_gicp)
 option(BUILD_VGICP_CUDA "Build GPU-powered VGICP" OFF)
 option(BUILD_apps "Build application programs" ON)
 option(BUILD_test "Build test programs" OFF)
+option(BUILD_PYTHON_BINDINGS "Build python bindings" OFF)
 
 add_definitions(-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2)
 set(CMAKE_C_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
@@ -69,6 +70,22 @@ if(BUILD_apps)
   add_dependencies(gicp_kitti fast_gicp)
   target_link_libraries(gicp_kitti
     ${PCL_LIBRARIES}
+    fast_gicp
+  )
+endif()
+
+### Python bindings ###
+if(BUILD_PYTHON_BINDINGS)
+  add_subdirectory(thirdparty/pybind11)
+  pybind11_add_module(pygicp
+    src/python/main.cpp
+  )
+  target_include_directories(pygicp PUBLIC
+    include
+    ${PCL_INCLUDE_DIRS}
+    ${EIGEN3_INCLUDE_DIR}
+  )
+  target_link_libraries(pygicp PRIVATE
     fast_gicp
   )
 endif()

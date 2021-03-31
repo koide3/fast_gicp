@@ -42,7 +42,7 @@ endif()
 ## Build ##
 ###########
 
-add_library(fast_gicp
+add_library(fast_gicp SHARED
   src/fast_gicp/gicp/lsq_registration.cpp
   src/fast_gicp/gicp/fast_gicp.cpp
   src/fast_gicp/gicp/fast_gicp_st.cpp
@@ -95,7 +95,7 @@ if(BUILD_VGICP_CUDA)
   set(CUDA_NVCC_FLAGS "--expt-relaxed-constexpr")
   add_definitions(-DUSE_VGICP_CUDA)
 
-  cuda_add_library(fast_vgicp_cuda
+  cuda_add_library(fast_vgicp_cuda SHARED
     src/fast_gicp/cuda/fast_vgicp_cuda.cu
     src/fast_gicp/cuda/brute_force_knn.cu
     src/fast_gicp/cuda/covariance_estimation.cu

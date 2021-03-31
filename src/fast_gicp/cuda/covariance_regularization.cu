@@ -71,7 +71,7 @@ struct covariance_regularization_frobenius {
 };
 
 struct covariance_regularization_mineig {
-  __host__ __device__ thrust::tuple<Eigen::Vector3f, Eigen::Vector3f, Eigen::Matrix3f> operator()(Eigen::Matrix3f& cov) const {
+  __host__ __device__ void operator()(Eigen::Matrix3f& cov) const {
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eig;
     eig.computeDirect(cov);
 

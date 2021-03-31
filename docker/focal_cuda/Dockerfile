@@ -23,7 +23,7 @@ RUN git submodule init && git submodule update
 
 RUN rm -rf /root/fast_gicp/build
 WORKDIR /root/fast_gicp/build
-RUN cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_VGICP_CUDA=ON -DBUILD_apps=OFF -DBUILD_test=ON
+RUN cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_VGICP_CUDA=ON -DBUILD_PYTHON_BINDINGS=ON -DBUILD_apps=OFF -DBUILD_test=ON
 RUN make -j$(nproc)
 
 WORKDIR /root

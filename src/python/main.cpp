@@ -91,16 +91,16 @@ Eigen::Matrix4d align_points(
     source_cloud.swap(filtered);
   }
 
-  boost::shared_ptr<fast_gicp::LsqRegistration<pcl::PointXYZ, pcl::PointXYZ>> reg;
+  std::shared_ptr<fast_gicp::LsqRegistration<pcl::PointXYZ, pcl::PointXYZ>> reg;
 
   if(method == "GICP") {
-    pcl::shared_ptr<fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ>> gicp(new fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ>);
+    std::shared_ptr<fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ>> gicp(new fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ>);
     gicp->setMaxCorrespondenceDistance(max_correspondence_distance);
     gicp->setCorrespondenceRandomness(k_correspondences);
     gicp->setNumThreads(num_threads);
     reg = gicp;
   } else if (method == "VGICP") {
-    pcl::shared_ptr<fast_gicp::FastVGICP<pcl::PointXYZ, pcl::PointXYZ>> vgicp(new fast_gicp::FastVGICP<pcl::PointXYZ, pcl::PointXYZ>);
+    std::shared_ptr<fast_gicp::FastVGICP<pcl::PointXYZ, pcl::PointXYZ>> vgicp(new fast_gicp::FastVGICP<pcl::PointXYZ, pcl::PointXYZ>);
     vgicp->setCorrespondenceRandomness(k_correspondences);
     vgicp->setResolution(voxel_resolution);
     vgicp->setNeighborSearchMethod(search_method(neighbor_search_method));
@@ -108,7 +108,7 @@ Eigen::Matrix4d align_points(
     reg = vgicp;
   } else if (method == "VGICP_CUDA") {
 #ifdef USE_VGICP_CUDA
-    pcl::shared_ptr<fast_gicp::FastVGICPCuda<pcl::PointXYZ, pcl::PointXYZ>> vgicp(new fast_gicp::FastVGICPCuda<pcl::PointXYZ, pcl::PointXYZ>);
+    std::shared_ptr<fast_gicp::FastVGICPCuda<pcl::PointXYZ, pcl::PointXYZ>> vgicp(new fast_gicp::FastVGICPCuda<pcl::PointXYZ, pcl::PointXYZ>);
     vgicp->setCorrespondenceRandomness(k_correspondences);
     vgicp->setNeighborSearchMethod(search_method(neighbor_search_method), neighbor_search_radius);
     vgicp->setResolution(voxel_resolution);
@@ -119,7 +119,7 @@ Eigen::Matrix4d align_points(
 #endif
   } else if (method == "NDT_CUDA") {
 #ifdef USE_VGICP_CUDA
-    pcl::shared_ptr<fast_gicp::NDTCuda<pcl::PointXYZ, pcl::PointXYZ>> ndt(new fast_gicp::NDTCuda<pcl::PointXYZ, pcl::PointXYZ>);
+    std::shared_ptr<fast_gicp::NDTCuda<pcl::PointXYZ, pcl::PointXYZ>> ndt(new fast_gicp::NDTCuda<pcl::PointXYZ, pcl::PointXYZ>);
     ndt->setResolution(voxel_resolution);
     ndt->setNeighborSearchMethod(search_method(neighbor_search_method), neighbor_search_radius);
     reg = ndt;

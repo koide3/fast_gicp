@@ -114,7 +114,7 @@ Eigen::Matrix4d align_points(
     vgicp->setResolution(voxel_resolution);
     reg = vgicp;
 #else
-    std::cerr << "error: you need to build fast_gicp with BUILD_VGICP_CUDA=ON"
+    std::cerr << "error: you need to build fast_gicp with BUILD_VGICP_CUDA=ON" << std::endl;
     return Eigen::Matrix4d::Identity();
 #endif
   } else if (method == "NDT_CUDA") {
@@ -124,7 +124,7 @@ Eigen::Matrix4d align_points(
     ndt->setNeighborSearchMethod(search_method(neighbor_search_method), neighbor_search_radius);
     reg = ndt;
 #else
-    std::cerr << "error: you need to build fast_gicp with BUILD_VGICP_CUDA=ON"
+    std::cerr << "error: you need to build fast_gicp with BUILD_VGICP_CUDA=ON" << std::endl;
     return Eigen::Matrix4d::Identity();
 #endif
   } else {

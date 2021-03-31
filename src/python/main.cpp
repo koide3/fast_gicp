@@ -48,6 +48,7 @@ Eigen::Matrix<double, -1, 3> downsample(const Eigen::Matrix<double, -1, 3>& poin
 
   pcl::ApproximateVoxelGrid<pcl::PointXYZ> voxelgrid;
   voxelgrid.setLeafSize(downsample_resolution, downsample_resolution, downsample_resolution);
+  voxelgrid.setInputCloud(cloud);
 
   pcl::PointCloud<pcl::PointXYZ>::Ptr filtered(new pcl::PointCloud<pcl::PointXYZ>);
   voxelgrid.filter(*filtered);

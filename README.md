@@ -51,6 +51,8 @@ make -j8
 cd fast_gicp
 python3 setup.py install --user
 ```
+Note: If you are on a catkin-enabled environment and the installation doesn't work well, comment out ```find_package(catkin)``` in CMakeLists.txt and run the above installation command again.
+
 
 ```python
 import pygicp
@@ -125,12 +127,21 @@ See [src/align.cpp](https://github.com/SMRT-AIST/fast_gicp/blob/master/src/align
 
 ## Test on KITTI
 
+### C++
+
 ```bash
 # Perform frame-by-frame registration
 rosrun fast_gicp gicp_kitti /your/kitti/path/sequences/00/velodyne
 ```
 
 ![kitti00](https://user-images.githubusercontent.com/31344317/86207074-b98ac280-bba8-11ea-9687-e65f03aaf25b.png)
+
+### Python
+
+```bash
+cd fast_gicp/src
+python3 kitti.py /your/kitti/path/sequences/00/velodyne
+```
 
 ## Related packages
 - [ndt_omp](https://github.com/koide3/ndt_omp)

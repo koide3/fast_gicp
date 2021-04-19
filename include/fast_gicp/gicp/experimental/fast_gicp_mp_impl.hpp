@@ -222,7 +222,7 @@ Eigen::VectorXf FastGICPMultiPoints<PointSource, PointTarget>::loss_ls(const Eig
 
 template<typename PointSource, typename PointTarget>
 template<typename PointT>
-bool FastGICPMultiPoints<PointSource, PointTarget>::calculate_covariances(const boost::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>>& covariances) {
+bool FastGICPMultiPoints<PointSource, PointTarget>::calculate_covariances(const pcl::shared_ptr<const pcl::PointCloud<PointT>>& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Matrix4, Eigen::aligned_allocator<Matrix4>>& covariances) {
   kdtree.setInputCloud(cloud);
   covariances.resize(cloud->size());
 

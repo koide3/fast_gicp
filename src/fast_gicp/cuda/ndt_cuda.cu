@@ -167,6 +167,7 @@ double NDTCudaCore::compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<
   thrust::device_vector<Eigen::Isometry3f> trans_ptr = trans_;
 
   switch (distance_mode) {
+    default:
     case fast_gicp::NDTDistanceMode::P2D:
       return p2d_ndt_compute_derivatives(*target_voxelmap, *source_points, *correspondences, trans_ptr.data(), trans_ptr.data() + 1, H, b);
 

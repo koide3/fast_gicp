@@ -4,6 +4,7 @@ project(fast_gicp)
 option(BUILD_VGICP_CUDA "Build GPU-powered VGICP" OFF)
 option(BUILD_apps "Build application programs" ON)
 option(BUILD_test "Build test programs" OFF)
+option(BUILD_PYTHON_BINDINGS "Build python bindings" OFF)
 
 add_definitions(-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2)
 set(CMAKE_C_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
@@ -41,7 +42,7 @@ endif()
 ## Build ##
 ###########
 
-add_library(fast_gicp
+add_library(fast_gicp SHARED
   src/fast_gicp/gicp/lsq_registration.cpp
   src/fast_gicp/gicp/fast_gicp.cpp
   src/fast_gicp/gicp/fast_gicp_st.cpp
@@ -73,12 +74,28 @@ if(BUILD_apps)
   )
 endif()
 
+### Python bindings ###
+if(BUILD_PYTHON_BINDINGS)
+  add_subdirectory(thirdparty/pybind11)
+  pybind11_add_module(pygicp
+    src/python/main.cpp
+  )
+  target_include_directories(pygicp PUBLIC
+    include
+    ${PCL_INCLUDE_DIRS}
+    ${EIGEN3_INCLUDE_DIR}
+  )
+  target_link_libraries(pygicp PRIVATE
+    fast_gicp
+  )
+endif()
+
 ### CUDA ###
 if(BUILD_VGICP_CUDA)
   set(CUDA_NVCC_FLAGS "--expt-relaxed-constexpr")
   add_definitions(-DUSE_VGICP_CUDA)
 
-  cuda_add_library(fast_vgicp_cuda
+  cuda_add_library(fast_vgicp_cuda SHARED
     src/fast_gicp/cuda/fast_vgicp_cuda.cu
     src/fast_gicp/cuda/brute_force_knn.cu
     src/fast_gicp/cuda/covariance_estimation.cu

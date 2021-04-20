@@ -111,6 +111,8 @@ if(BUILD_VGICP_CUDA)
     fast_vgicp_cuda
   )
   add_dependencies(fast_gicp fast_vgicp_cuda)
+  install(TARGETS fast_vgicp_cuda  
+    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
 endif()
 
 ### TEST ###

@@ -12,9 +12,12 @@ set(CMAKE_CXX_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
 
 set(CMAKE_BUILD_TYPE "Release")
 
-find_package(catkin)
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
+
+if(NOT BUILD_PYTHON_BINDINGS)
+  find_package(catkin)
+endif()
 
 find_package(OpenMP)
 if (OPENMP_FOUND)

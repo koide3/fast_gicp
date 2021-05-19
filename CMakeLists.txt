@@ -6,9 +6,12 @@ option(BUILD_apps "Build application programs" ON)
 option(BUILD_test "Build test programs" OFF)
 option(BUILD_PYTHON_BINDINGS "Build python bindings" OFF)
 
-add_definitions(-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2)
-set(CMAKE_C_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
-set(CMAKE_CXX_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
+if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64")
+else()
+  add_definitions(-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2)
+  set(CMAKE_C_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
+  set(CMAKE_CXX_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
+endif()
 
 set(CMAKE_BUILD_TYPE "Release")
 

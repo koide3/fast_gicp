@@ -111,8 +111,10 @@ if(BUILD_VGICP_CUDA)
     fast_vgicp_cuda
   )
   add_dependencies(fast_gicp fast_vgicp_cuda)
-  install(TARGETS fast_vgicp_cuda  
-    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
+  if(catkin_FOUND)
+    install(TARGETS fast_vgicp_cuda  
+      LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
+  endif()
 endif()
 
 ### TEST ###
@@ -125,9 +127,11 @@ if(BUILD_test)
   gtest_add_tests(TARGET gicp_test WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} EXTRA_ARGS "${CMAKE_SOURCE_DIR}/data")
 endif()
 
-install(TARGETS ${PROJECT_NAME}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
-
-install(DIRECTORY include/
-  DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
-  FILES_MATCHING PATTERN "*.hpp")
+if(catkin_FOUND)
+  install(TARGETS ${PROJECT_NAME}
+    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
+  
+  install(DIRECTORY include/
+    DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
+    FILES_MATCHING PATTERN "*.hpp")
+endif()

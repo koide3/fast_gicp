@@ -134,6 +134,10 @@ if(BUILD_VGICP_CUDA)
     fast_vgicp_cuda
   )
   add_dependencies(fast_gicp fast_vgicp_cuda)
+  if(catkin_FOUND)
+    install(TARGETS fast_vgicp_cuda  
+      LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
+  endif()
 endif()
 
 ### TEST ###
@@ -144,4 +148,13 @@ if(BUILD_test)
   add_dependencies(gicp_test fast_gicp)
   target_link_libraries(gicp_test ${GTEST_LIBRARIES} ${PCL_LIBRARIES} fast_gicp)
   gtest_add_tests(TARGET gicp_test WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} EXTRA_ARGS "${CMAKE_SOURCE_DIR}/data")
+endif()
+
+if(catkin_FOUND)
+  install(TARGETS ${PROJECT_NAME}
+    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
+  
+  install(DIRECTORY include/
+    DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
+    FILES_MATCHING PATTERN "*.hpp")
 endif()

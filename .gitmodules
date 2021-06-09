@@ -3,7 +3,7 @@
 	url = https://github.com/strasdat/Sophus.git
 [submodule "thirdparty/Eigen"]
 	path = thirdparty/Eigen
-	url = https://github.com/eigenteam/eigen-git-mirror.git
+	url = https://gitlab.com/libeigen/eigen.git
 [submodule "thirdparty/nvbio"]
 	path = thirdparty/nvbio
 	url = https://github.com/NVlabs/nvbio.git

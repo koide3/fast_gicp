@@ -29,6 +29,7 @@ if (OPENMP_FOUND)
 endif()
 
 if(BUILD_VGICP_CUDA)
+  set(CUDA_cublas_device_LIBRARY "")
   find_package(CUDA REQUIRED)
   include_directories(${CUDA_INCLUDE_DIRS})
   link_directories(${CUDA_LIBRARY_DIRS})

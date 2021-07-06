@@ -9,7 +9,7 @@ This package is a collection of GICP-based fast point cloud registration algorit
 - NDTCuda: CUDA-accelerated D2D NDT algorithm (**\~500FPS**)
 ![proctime](data/proctime.png)
 
-[![Build Status](https://travis-ci.org/SMRT-AIST/fast_gicp.svg?branch=master)](https://travis-ci.org/SMRT-AIST/fast_gicp) on melodic & noetic
+[![Build Status](https://travis-ci.com/SMRT-AIST/fast_gicp.svg?branch=master)](https://travis-ci.com/SMRT-AIST/fast_gicp) on melodic & noetic
 
 ## Installation
 

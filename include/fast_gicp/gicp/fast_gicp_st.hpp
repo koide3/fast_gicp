@@ -26,6 +26,14 @@ public:
   using PointCloudSourcePtr = typename PointCloudSource::Ptr;
   using PointCloudSourceConstPtr = typename PointCloudSource::ConstPtr;
 
+#if PCL_VERSION >= PCL_VERSION_CALC(1, 10, 0)
+  using Ptr = pcl::shared_ptr<FastGICPSingleThread<PointSource, PointTarget>>;
+  using ConstPtr = pcl::shared_ptr<const FastGICPSingleThread<PointSource, PointTarget>>;
+#else
+  using Ptr = boost::shared_ptr<FastGICPSingleThread<PointSource, PointTarget>>;
+  using ConstPtr = boost::shared_ptr<const FastGICPSingleThread<PointSource, PointTarget>>;
+#endif
+
 protected:
   using pcl::Registration<PointSource, PointTarget, Scalar>::input_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::target_;

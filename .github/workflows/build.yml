@@ -26,4 +26,8 @@ jobs:
           password: ${{ secrets.DOCKER_TOKEN }}
 
       - name: Docker build
-        run: docker build -f ${{github.workspace}}/docker/${{ matrix.ROS_DISTRO }}/Dockerfile ${{github.workspace}}
+        uses: docker/build-push-action@v2
+        with:
+          file: ${{github.workspace}}/docker/${{ matrix.ROS_DISTRO }}/Dockerfile
+          context: .
+          push: false

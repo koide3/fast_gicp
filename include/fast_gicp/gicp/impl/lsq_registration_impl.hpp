@@ -45,6 +45,11 @@ const Eigen::Matrix<double, 6, 6>& LsqRegistration<PointTarget, PointSource>::ge
 }
 
 template <typename PointTarget, typename PointSource>
+double LsqRegistration<PointTarget, PointSource>::evaluateCost(const Eigen::Matrix4f& relative_pose, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) {
+  return this->linearize(Eigen::Isometry3f(relative_pose).cast<double>(), H, b);
+}
+
+template <typename PointTarget, typename PointSource>
 void LsqRegistration<PointTarget, PointSource>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
   Eigen::Isometry3d x0 = Eigen::Isometry3d(guess.template cast<double>());
 

@@ -54,6 +54,8 @@ public:
 
   const Eigen::Matrix<double, 6, 6>& getFinalHessian() const;
 
+  double evaluateCost(const Eigen::Matrix4f& relative_pose, Eigen::Matrix<double, 6, 6>* H = nullptr, Eigen::Matrix<double, 6, 1>* b = nullptr);
+
   virtual void swapSourceAndTarget() {}
   virtual void clearSource() {}
   virtual void clearTarget() {}

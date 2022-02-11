@@ -12,14 +12,14 @@ namespace cuda {
 namespace {
 
 struct svd_kernel {
-  __host__ __device__ thrust::tuple<Eigen::Vector3f, Eigen::Vector3f, Eigen::Matrix3f> operator()(const thrust::tuple<Eigen::Vector3f, Eigen::Matrix3f>& input) const {
+  __host__ __device__ thrust::tuple<Eigen::Vector3f, Eigen::Vector3f, Eigen::Matrix3f, int> operator()(const thrust::tuple<Eigen::Vector3f, Eigen::Matrix3f, int>& input) const {
     const auto& mean = thrust::get<0>(input);
     const auto& cov = thrust::get<1>(input);
 
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eig;
     eig.computeDirect(cov);
 
-    return thrust::make_tuple(mean, eig.eigenvalues(), eig.eigenvectors());
+    return thrust::make_tuple(mean, eig.eigenvalues(), eig.eigenvectors(), thrust::get<2>(input));
   }
 };
 
@@ -31,16 +31,26 @@ struct eigenvalue_filter_kernel {
 };
 
 struct svd_reconstruction_kernel {
-  __host__ __device__ thrust::tuple<Eigen::Vector3f, Eigen::Matrix3f> operator()(const thrust::tuple<Eigen::Vector3f, Eigen::Vector3f, Eigen::Matrix3f>& input) const {
+  svd_reconstruction_kernel(
+    const thrust::device_ptr<const Eigen::Matrix3f>& values_diag,
+    thrust::device_vector<Eigen::Matrix3f>& covariances)
+  : values_diag_ptr(values_diag), covariances_ptr(covariances.data()) {}
+  __host__ __device__ void operator()(const thrust::tuple<Eigen::Vector3f, Eigen::Vector3f, Eigen::Matrix3f, int>& input) const {
     const auto& mean = thrust::get<0>(input);
     const auto& values = thrust::get<1>(input);
     const auto& vecs = thrust::get<2>(input);
+    const auto idx = thrust::get<3>(input);
 
-    Eigen::Matrix3f values_diag = Eigen::Vector3f(1e-3f, 1.0f, 1.0f).asDiagonal();
     Eigen::Matrix3f vecs_inv = vecs.inverse();
-    return thrust::make_tuple(mean, (vecs * values_diag * vecs_inv).eval());
+    const auto& values_diag = *thrust::raw_pointer_cast(values_diag_ptr);
+    Eigen::Matrix3f* cov = thrust::raw_pointer_cast(covariances_ptr) + idx;
+    *cov = (vecs * values_diag * vecs_inv).eval();
   }
+  const thrust::device_ptr<const Eigen::Matrix3f> values_diag_ptr;
+  thrust::device_ptr<Eigen::Matrix3f> covariances_ptr;
 };
+
+
 
 struct covariance_regularization_svd {
   __host__ __device__ void operator()(Eigen::Matrix3f& cov) const {
@@ -90,23 +100,17 @@ struct covariance_regularization_mineig {
 
 void covariance_regularization(thrust::device_vector<Eigen::Vector3f>& means, thrust::device_vector<Eigen::Matrix3f>& covs, RegularizationMethod method) {
   if (method == RegularizationMethod::PLANE) {
-    // thrust::for_each(covs.begin(), covs.end(), covariance_regularization_svd());
-    // return;
+    thrust::device_vector<int> d_indices(covs.size());
+    thrust::sequence(d_indices.begin(), d_indices.end());
+    auto first = thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(means.begin(), covs.begin(), d_indices.begin())), svd_kernel());
+    auto last = thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(means.end(), covs.end(), d_indices.end())), svd_kernel());
 
-    thrust::device_vector<Eigen::Vector3f> means_(means.size());
-    thrust::device_vector<Eigen::Matrix3f> covs_(covs.size());
+    Eigen::Matrix3f diag_matrix = Eigen::Vector3f(1e-3f, 1.0f, 1.0f).asDiagonal();
+    thrust::device_vector<Eigen::Matrix3f> val(1);
+    val[0] = diag_matrix;
+    thrust::device_ptr<Eigen::Matrix3f> diag_matrix_ptr = val.data();
+    thrust::for_each(first, last, svd_reconstruction_kernel(diag_matrix_ptr, covs));
 
-    auto first = thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(means.begin(), covs.begin())), svd_kernel());
-    auto last = thrust::make_transform_iterator(thrust::make_zip_iterator(thrust::make_tuple(means.end(), covs.end())), svd_kernel());
-    auto output_first = thrust::make_transform_output_iterator(thrust::make_zip_iterator(thrust::make_tuple(means_.begin(), covs_.begin())), svd_reconstruction_kernel());
-    auto output_last = thrust::copy_if(first, last, output_first, eigenvalue_filter_kernel());
-
-    int num_valid_points = output_last - output_first;
-    means_.erase(means_.begin() + num_valid_points, means_.end());
-    covs_.erase(covs_.begin() + num_valid_points, covs_.end());
-
-    means = std::move(means_);
-    covs = std::move(covs_);
   } else if (method == RegularizationMethod::FROBENIUS) {
     thrust::for_each(covs.begin(), covs.end(), covariance_regularization_frobenius());
   } else if (method == RegularizationMethod::MIN_EIG) {

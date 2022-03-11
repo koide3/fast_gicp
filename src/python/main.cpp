@@ -172,6 +172,7 @@ PYBIND11_MODULE(pygicp, m) {
     .def("swap_source_and_target", &LsqRegistration::swapSourceAndTarget)
     .def("get_final_hessian", &LsqRegistration::getFinalHessian)
     .def("get_final_transformation", &LsqRegistration::getFinalTransformation)
+    .def("get_fitness_score", [] (LsqRegistration& reg, const double max_range) { return reg.getFitnessScore(max_range); })
     .def("align",
       [] (LsqRegistration& reg, const Eigen::Matrix4f& initial_guess) { 
         pcl::PointCloud<pcl::PointXYZ> aligned;

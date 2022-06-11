@@ -3,3 +3,4 @@
 
 template class fast_gicp::FastGICPSingleThread<pcl::PointXYZ, pcl::PointXYZ>;
 template class fast_gicp::FastGICPSingleThread<pcl::PointXYZI, pcl::PointXYZI>;
+template class fast_gicp::FastGICPSingleThread<pcl::PointNormal, pcl::PointNormal>;

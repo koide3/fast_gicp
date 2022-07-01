@@ -3,3 +3,4 @@
 
 template class fast_gicp::NDTCuda<pcl::PointXYZ, pcl::PointXYZ>;
 template class fast_gicp::NDTCuda<pcl::PointXYZI, pcl::PointXYZI>;
+template class fast_gicp::NDTCuda<pcl::PointNormal, pcl::PointNormal>;

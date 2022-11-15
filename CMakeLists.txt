@@ -18,8 +18,18 @@ set(CMAKE_BUILD_TYPE "Release")
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
 
+if(DEFINED ENV{ROS_VERSION})
+  set(ROS_VERSION $ENV{ROS_VERSION})
+endif()
+
 if(NOT BUILD_PYTHON_BINDINGS)
-  find_package(catkin)
+  if(${ROS_VERSION})
+    if(${ROS_VERSION} EQUAL 1)
+      find_package(catkin)
+    elseif (${ROS_VERSION} EQUAL 2)
+      find_package(ament_cmake)
+    endif()
+  endif()
 endif()
 
 find_package(OpenMP)
@@ -151,10 +161,28 @@ if(BUILD_test)
 endif()
 
 if(catkin_FOUND)
+  ###################################
+  ## catkin specific configuration ##
+  ###################################
   install(TARGETS ${PROJECT_NAME}
     LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
   
   install(DIRECTORY include/
     DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
     FILES_MATCHING PATTERN "*.hpp")
+elseif (ament_cmake_FOUND)
+  ##################################
+  ## ament specific configuration ##
+  ##################################
+  ament_export_include_directories(include)
+  ament_export_libraries(fast_gicp)
+  ament_package()
+
+  install(TARGETS ${PROJECT_NAME}
+    LIBRARY DESTINATION lib)
+
+  install(
+      DIRECTORY "include/"
+      DESTINATION include
+    )
 endif()

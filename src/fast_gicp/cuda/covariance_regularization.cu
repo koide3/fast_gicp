@@ -4,6 +4,7 @@
 #include <Eigen/Eigenvalues>
 
 #include <thrust/copy.h>
+#include <thrust/sequence.h>
 #include <thrust/iterator/transform_output_iterator.h>
 
 namespace fast_gicp {

@@ -150,7 +150,7 @@ if(BUILD_VGICP_CUDA)
   )
   add_dependencies(fast_gicp fast_vgicp_cuda)
   if(catkin_FOUND)
-    install(TARGETS fast_vgicp_cuda  
+    install(TARGETS fast_vgicp_cuda
       LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
   endif()
 endif()
@@ -171,7 +171,7 @@ if(catkin_FOUND)
   ###################################
   install(TARGETS ${PROJECT_NAME}
     LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
-  
+
   install(DIRECTORY include/
     DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
     FILES_MATCHING PATTERN "*.hpp")

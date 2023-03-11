@@ -5,7 +5,9 @@
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <pcl/common/transforms.h>
+#include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/filters/approximate_voxel_grid.h>
+#include <pcl/filters/crop_box.h>
 
 #include <pcl/registration/ndt.h>
 #include <pcl/registration/gicp.h>
@@ -21,7 +23,7 @@
 // benchmark for PCL's registration methods
 template <typename Registration>
 void test_pcl(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& target, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& source) {
-  pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>, bool visualize = false);
 
   double fitness_score = 0.0;
 
@@ -35,22 +37,32 @@ void test_pcl(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr&
   double single = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
   std::cout << "single:" << single << "[msec] " << std::flush;
 
-  // 100 times
+  if (visualize) {
+    pcl::visualization::PCLVisualizer viewer;
+    viewer.addPointCloud(target, "tgt");
+    viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 0, 0, "tgt");
+    viewer.addPointCloud(aligned, "aligned");
+    viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0, 1, 1, "aligned");
+    while (!viewer.wasStopped()) viewer.spin();
+    viewer.close();
+  }
+
+  // 10 times
   t1 = std::chrono::high_resolution_clock::now();
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 10; i++) {
     reg.setInputTarget(target);
     reg.setInputSource(source);
     reg.align(*aligned);
   }
   t2 = std::chrono::high_resolution_clock::now();
   double multi = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
-  std::cout << "100times:" << multi << "[msec] fitness_score:" << fitness_score << std::endl;
+  std::cout << "10times:" << multi << "[msec] fitness_score:" << fitness_score << std::endl;
 }
 
 // benchmark for fast_gicp registration methods
 template <typename Registration>
 void test(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& target, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& source) {
-  pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>, bool visualize = false);
 
   double fitness_score = 0.0;
 
@@ -69,9 +81,9 @@ void test(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& tar
 
   std::cout << "single:" << single << "[msec] " << std::flush;
 
-  // 100 times
+  // 10 times
   t1 = std::chrono::high_resolution_clock::now();
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 10; i++) {
     reg.clearTarget();
     reg.clearSource();
     reg.setInputTarget(target);
@@ -80,14 +92,24 @@ void test(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& tar
   }
   t2 = std::chrono::high_resolution_clock::now();
   double multi = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
-  std::cout << "100times:" << multi << "[msec] " << std::flush;
+  std::cout << "10times:" << multi << "[msec] " << std::flush;
+
+  if (visualize) {
+    pcl::visualization::PCLVisualizer viewer;
+    viewer.addPointCloud(target, "tgt");
+    viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 1, 0, 0, "tgt");
+    viewer.addPointCloud(aligned, "aligned");
+    viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, 0, 1, 1, "aligned");
+    while (!viewer.wasStopped()) viewer.spin();
+    viewer.close();
+  }
 
   // for some tasks like odometry calculation,
   // you can reuse the covariances of a source point cloud in the next registration
   t1 = std::chrono::high_resolution_clock::now();
   pcl::PointCloud<pcl::PointXYZ>::ConstPtr target_ = target;
   pcl::PointCloud<pcl::PointXYZ>::ConstPtr source_ = source;
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 10; i++) {
     reg.swapSourceAndTarget();
     reg.clearSource();
 
@@ -100,7 +122,7 @@ void test(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& tar
   t2 = std::chrono::high_resolution_clock::now();
   double reuse = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
 
-  std::cout << "100times_reuse:" << reuse << "[msec] fitness_score:" << fitness_score << std::endl;
+  std::cout << "10times_reuse:" << reuse << "[msec] fitness_score:" << fitness_score << std::endl;
 }
 
 /**
@@ -134,15 +156,23 @@ int main(int argc, char** argv) {
 
   // downsampling
   pcl::ApproximateVoxelGrid<pcl::PointXYZ> voxelgrid;
-  voxelgrid.setLeafSize(0.1f, 0.1f, 0.1f);
+  constexpr float leaf_size = 0.1;
+  voxelgrid.setLeafSize(leaf_size, leaf_size, leaf_size);
+  pcl::CropBox<pcl::PointXYZ> crop_box;
+  crop_box.setMin(Eigen::Vector4f(-1, 6, -5, 1));
+  crop_box.setMax(Eigen::Vector4f(10, 10, 10, 1));
 
   pcl::PointCloud<pcl::PointXYZ>::Ptr filtered(new pcl::PointCloud<pcl::PointXYZ>());
-  voxelgrid.setInputCloud(target_cloud);
+  crop_box.setInputCloud(target_cloud);
+  crop_box.filter(*filtered);
+  voxelgrid.setInputCloud(filtered);
   voxelgrid.filter(*filtered);
   target_cloud = filtered;
 
   filtered.reset(new pcl::PointCloud<pcl::PointXYZ>());
-  voxelgrid.setInputCloud(source_cloud);
+  crop_box.setInputCloud(source_cloud);
+  crop_box.filter(*filtered);
+  voxelgrid.setInputCloud(filtered);
   voxelgrid.filter(*filtered);
   source_cloud = filtered;
 

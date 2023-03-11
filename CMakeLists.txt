@@ -67,6 +67,9 @@ add_library(fast_gicp SHARED
 target_link_libraries(fast_gicp
   ${PCL_LIBRARIES}
 )
+if (OPENMP_FOUND)
+    target_link_libraries(fast_gicp OpenMP::OpenMP_CXX)
+endif ()
 target_include_directories(fast_gicp PUBLIC
   include
   ${PCL_INCLUDE_DIRS}

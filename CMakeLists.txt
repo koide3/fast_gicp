@@ -9,9 +9,12 @@ option(BUILD_PYTHON_BINDINGS "Build python bindings" OFF)
 if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64")
 else()
   add_definitions(-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2)
-  set(CMAKE_C_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
-  set(CMAKE_CXX_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
+  set(CMAKE_C_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2 -march=native")
+  set(CMAKE_CXX_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2 -march=native")
 endif()
+if
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=native")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mtune=native")
 
 set(CMAKE_BUILD_TYPE "Release")
 
@@ -150,7 +153,7 @@ if(BUILD_VGICP_CUDA)
   )
   add_dependencies(fast_gicp fast_vgicp_cuda)
   if(catkin_FOUND)
-    install(TARGETS fast_vgicp_cuda  
+    install(TARGETS fast_vgicp_cuda
       LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
   endif()
 endif()
@@ -171,7 +174,7 @@ if(catkin_FOUND)
   ###################################
   install(TARGETS ${PROJECT_NAME}
     LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
-  
+
   install(DIRECTORY include/
     DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
     FILES_MATCHING PATTERN "*.hpp")

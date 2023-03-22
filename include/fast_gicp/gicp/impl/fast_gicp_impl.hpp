@@ -5,8 +5,8 @@
 
 namespace fast_gicp {
 
-template <typename PointSource, typename PointTarget>
-FastGICP<PointSource, PointTarget>::FastGICP() {
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::FastGICP() {
 #ifdef _OPENMP
   num_threads_ = omp_get_max_threads();
 #else
@@ -18,15 +18,15 @@ FastGICP<PointSource, PointTarget>::FastGICP() {
   corr_dist_threshold_ = std::numeric_limits<float>::max();
 
   regularization_method_ = RegularizationMethod::PLANE;
-  source_kdtree_.reset(new pcl::search::KdTree<PointSource>);
-  target_kdtree_.reset(new pcl::search::KdTree<PointTarget>);
+  source_kdtree_.reset(new SearchMethodSource);
+  target_kdtree_.reset(new SearchMethodTarget);
 }
 
-template <typename PointSource, typename PointTarget>
-FastGICP<PointSource, PointTarget>::~FastGICP() {}
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::~FastGICP() {}
 
-template <typename PointSource, typename PointTarget>
-void FastGICP<PointSource, PointTarget>::setNumThreads(int n) {
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setNumThreads(int n) {
   num_threads_ = n;
 
 #ifdef _OPENMP
@@ -36,18 +36,18 @@ void FastGICP<PointSource, PointTarget>::setNumThreads(int n) {
 #endif
 }
 
-template <typename PointSource, typename PointTarget>
-void FastGICP<PointSource, PointTarget>::setCorrespondenceRandomness(int k) {
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setCorrespondenceRandomness(int k) {
   k_correspondences_ = k;
 }
 
-template <typename PointSource, typename PointTarget>
-void FastGICP<PointSource, PointTarget>::setRegularizationMethod(RegularizationMethod method) {
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setRegularizationMethod(RegularizationMethod method) {
   regularization_method_ = method;
 }
 
-template <typename PointSource, typename PointTarget>
-void FastGICP<PointSource, PointTarget>::swapSourceAndTarget() {
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::swapSourceAndTarget() {
   input_.swap(target_);
   source_kdtree_.swap(target_kdtree_);
   source_covs_.swap(target_covs_);
@@ -56,20 +56,20 @@ void FastGICP<PointSource, PointTarget>::swapSourceAndTarget() {
   sq_distances_.clear();
 }
 
-template <typename PointSource, typename PointTarget>
-void FastGICP<PointSource, PointTarget>::clearSource() {
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::clearSource() {
   input_.reset();
   source_covs_.clear();
 }
 
-template <typename PointSource, typename PointTarget>
-void FastGICP<PointSource, PointTarget>::clearTarget() {
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::clearTarget() {
   target_.reset();
   target_covs_.clear();
 }
 
-template <typename PointSource, typename PointTarget>
-void FastGICP<PointSource, PointTarget>::setInputSource(const PointCloudSourceConstPtr& cloud) {
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setInputSource(const PointCloudSourceConstPtr& cloud) {
   if (input_ == cloud) {
     return;
   }
@@ -79,8 +79,8 @@ void FastGICP<PointSource, PointTarget>::setInputSource(const PointCloudSourceCo
   source_covs_.clear();
 }
 
-template <typename PointSource, typename PointTarget>
-void FastGICP<PointSource, PointTarget>::setInputTarget(const PointCloudTargetConstPtr& cloud) {
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setInputTarget(const PointCloudTargetConstPtr& cloud) {
   if (target_ == cloud) {
     return;
   }
@@ -89,18 +89,18 @@ void FastGICP<PointSource, PointTarget>::setInputTarget(const PointCloudTargetCo
   target_covs_.clear();
 }
 
-template <typename PointSource, typename PointTarget>
-void FastGICP<PointSource, PointTarget>::setSourceCovariances(const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs) {
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setSourceCovariances(const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs) {
   source_covs_ = covs;
 }
 
-template <typename PointSource, typename PointTarget>
-void FastGICP<PointSource, PointTarget>::setTargetCovariances(const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs) {
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::setTargetCovariances(const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs) {
   target_covs_ = covs;
 }
 
-template <typename PointSource, typename PointTarget>
-void FastGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
   if (source_covs_.size() != input_->size()) {
     calculate_covariances(input_, *source_kdtree_, source_covs_);
   }
@@ -111,8 +111,8 @@ void FastGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource&
   LsqRegistration<PointSource, PointTarget>::computeTransformation(output, guess);
 }
 
-template <typename PointSource, typename PointTarget>
-void FastGICP<PointSource, PointTarget>::update_correspondences(const Eigen::Isometry3d& trans) {
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::update_correspondences(const Eigen::Isometry3d& trans) {
   assert(source_covs_.size() == input_->size());
   assert(target_covs_.size() == target_->size());
 
@@ -151,8 +151,8 @@ void FastGICP<PointSource, PointTarget>::update_correspondences(const Eigen::Iso
   }
 }
 
-template <typename PointSource, typename PointTarget>
-double FastGICP<PointSource, PointTarget>::linearize(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) {
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+double FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::linearize(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) {
   update_correspondences(trans);
 
   double sum_errors = 0.0;
@@ -210,8 +210,8 @@ double FastGICP<PointSource, PointTarget>::linearize(const Eigen::Isometry3d& tr
   return sum_errors;
 }
 
-template <typename PointSource, typename PointTarget>
-double FastGICP<PointSource, PointTarget>::compute_error(const Eigen::Isometry3d& trans) {
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
+double FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::compute_error(const Eigen::Isometry3d& trans) {
   double sum_errors = 0.0;
 
 #pragma omp parallel for num_threads(num_threads_) reduction(+ : sum_errors) schedule(guided, 8)
@@ -236,11 +236,11 @@ double FastGICP<PointSource, PointTarget>::compute_error(const Eigen::Isometry3d
   return sum_errors;
 }
 
-template <typename PointSource, typename PointTarget>
+template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 template <typename PointT>
-bool FastGICP<PointSource, PointTarget>::calculate_covariances(
+bool FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::calculate_covariances(
   const typename pcl::PointCloud<PointT>::ConstPtr& cloud,
-  pcl::search::KdTree<PointT>& kdtree,
+  pcl::search::Search<PointT>& kdtree,
   std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances) {
   if (kdtree.getInputCloud() != cloud) {
     kdtree.setInputCloud(cloud);

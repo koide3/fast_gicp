@@ -23,6 +23,12 @@ This package is a collection of GICP-based fast point cloud registration algorit
 
 We have tested this package on Ubuntu 18.04/20.04 and CUDA 11.1.
 
+On macOS when using `brew`, you might have to set up your depenencies like this
+
+```
+cmake .. "-DCMAKE_PREFIX_PATH=$(brew --prefix libomp)[;other-custom-prefixes]" -DQt5_DIR=$(brew --prefix qt@5)lib/cmake/Qt5
+```
+
 ### CUDA
 
 To enable the CUDA-powered implementations, set ```BUILD_VGICP_CUDA``` cmake option to ```ON```.

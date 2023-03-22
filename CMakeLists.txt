@@ -9,9 +9,10 @@ option(BUILD_PYTHON_BINDINGS "Build python bindings" OFF)
 if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64")
 else()
   add_definitions(-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2)
-  set(CMAKE_C_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
-  set(CMAKE_CXX_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2")
+  set(CMAKE_C_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2 -march=native")
+  set(CMAKE_CXX_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2 -march=native")
 endif()
+if
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=native")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mtune=native")
 

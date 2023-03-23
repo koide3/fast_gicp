@@ -38,7 +38,7 @@ protected:
   using pcl::Registration<PointSource, PointTarget, Scalar>::input_;
   using pcl::Registration<PointSource, PointTarget, Scalar>::target_;
 
-  using FastGICP<PointSource, PointTarget>::target_kdtree_;
+  using FastGICP<PointSource, PointTarget>::search_target_;
   using FastGICP<PointSource, PointTarget>::correspondences_;
   using FastGICP<PointSource, PointTarget>::sq_distances_;
   using FastGICP<PointSource, PointTarget>::source_covs_;

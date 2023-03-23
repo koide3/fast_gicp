@@ -45,7 +45,7 @@ void FastVGICP<PointSource, PointTarget>::setVoxelAccumulationMode(VoxelAccumula
 template <typename PointSource, typename PointTarget>
 void FastVGICP<PointSource, PointTarget>::swapSourceAndTarget() {
   input_.swap(target_);
-  source_kdtree_.swap(target_kdtree_);
+  search_source_.swap(search_target_);
   source_covs_.swap(target_covs_);
   voxelmap_.reset();
   voxel_correspondences_.clear();

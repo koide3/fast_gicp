@@ -47,8 +47,8 @@ protected:
   using pcl::Registration<PointSource, PointTarget, Scalar>::target_;
 
   using FastGICP<PointSource, PointTarget>::num_threads_;
-  using FastGICP<PointSource, PointTarget>::source_kdtree_;
-  using FastGICP<PointSource, PointTarget>::target_kdtree_;
+  using FastGICP<PointSource, PointTarget>::search_source_;
+  using FastGICP<PointSource, PointTarget>::search_target_;
   using FastGICP<PointSource, PointTarget>::source_covs_;
   using FastGICP<PointSource, PointTarget>::target_covs_;
 

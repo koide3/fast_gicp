@@ -18,8 +18,8 @@ FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::Fast
   corr_dist_threshold_ = std::numeric_limits<float>::max();
 
   regularization_method_ = RegularizationMethod::PLANE;
-  source_kdtree_.reset(new SearchMethodSource);
-  target_kdtree_.reset(new SearchMethodTarget);
+  search_source_.reset(new SearchMethodSource);
+  search_target_.reset(new SearchMethodTarget);
 }
 
 template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
@@ -49,7 +49,7 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
 template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::swapSourceAndTarget() {
   input_.swap(target_);
-  source_kdtree_.swap(target_kdtree_);
+  search_source_.swap(search_target_);
   source_covs_.swap(target_covs_);
 
   correspondences_.clear();
@@ -75,7 +75,7 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
   }
 
   pcl::Registration<PointSource, PointTarget, Scalar>::setInputSource(cloud);
-  source_kdtree_->setInputCloud(cloud);
+  search_source_->setInputCloud(cloud);
   source_covs_.clear();
 }
 
@@ -85,7 +85,7 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
     return;
   }
   pcl::Registration<PointSource, PointTarget, Scalar>::setInputTarget(cloud);
-  target_kdtree_->setInputCloud(cloud);
+  search_target_->setInputCloud(cloud);
   target_covs_.clear();
 }
 
@@ -102,10 +102,10 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
 template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget>
 void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
   if (source_covs_.size() != input_->size()) {
-    calculate_covariances(input_, *source_kdtree_, source_covs_);
+    calculate_covariances(input_, *search_source_, source_covs_);
   }
   if (target_covs_.size() != target_->size()) {
-    calculate_covariances(target_, *target_kdtree_, target_covs_);
+    calculate_covariances(target_, *search_target_, target_covs_);
   }
 
   LsqRegistration<PointSource, PointTarget>::computeTransformation(output, guess);
@@ -130,7 +130,7 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget>:
     PointTarget pt;
     pt.getVector4fMap() = trans_f * input_->at(i).getVector4fMap();
 
-    target_kdtree_->nearestKSearch(pt, 1, k_indices, k_sq_dists);
+    search_target_->nearestKSearch(pt, 1, k_indices, k_sq_dists);
 
     sq_distances_[i] = k_sq_dists[0];
     correspondences_[i] = k_sq_dists[0] < corr_dist_threshold_ * corr_dist_threshold_ ? k_indices[0] : -1;

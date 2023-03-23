@@ -87,8 +87,8 @@ protected:
 
   RegularizationMethod regularization_method_;
 
-  std::shared_ptr<SearchMethodSource> source_kdtree_;
-  std::shared_ptr<SearchMethodTarget> target_kdtree_;
+  std::shared_ptr<SearchMethodSource> search_source_;
+  std::shared_ptr<SearchMethodTarget> search_target_;
 
   std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> source_covs_;
   std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> target_covs_;

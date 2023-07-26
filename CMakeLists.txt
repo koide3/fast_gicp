@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10.0)
 project(fast_gicp)
 
-option(BUILD_VGICP_CUDA "Build GPU-powered VGICP" OFF)
+option(BUILD_VGICP_CUDA "Build GPU-powered VGICP" ON)
 option(BUILD_apps "Build application programs" ON)
 option(BUILD_test "Build test programs" OFF)
 option(BUILD_PYTHON_BINDINGS "Build python bindings" OFF)
@@ -121,6 +121,10 @@ if(BUILD_VGICP_CUDA)
     src/fast_gicp/cuda/brute_force_knn.cu
     src/fast_gicp/cuda/covariance_estimation.cu
     src/fast_gicp/cuda/covariance_estimation_rbf.cu
+    src/fast_gicp/cuda/covariance_estimation_polynomial.cu
+    src/fast_gicp/cuda/covariance_estimation_histogram.cu
+    src/fast_gicp/cuda/covariance_estimation_laplacian.cu
+    src/fast_gicp/cuda/covariance_estimation_gaussian.cu
     src/fast_gicp/cuda/covariance_regularization.cu
     src/fast_gicp/cuda/gaussian_voxelmap.cu
     src/fast_gicp/cuda/find_voxel_correspondences.cu

@@ -79,7 +79,7 @@ struct p2d_ndt_compute_derivatives_kernel {
     float err = w * error.transpose() * RCR_inv * error;
 
     Eigen::Matrix<float, 3, 6> dtdx0;
-    dtdx0.block<3, 3>(0, 0) = skew_symmetric(transed_mean_A);
+    dtdx0.block<3, 3>(0, 0) = skew_symmetric(R * mean_A);
     dtdx0.block<3, 3>(0, 3) = -Eigen::Matrix3f::Identity();
 
     Eigen::Matrix<float, 3, 6> J = dtdx0;
@@ -151,7 +151,7 @@ struct d2d_ndt_compute_derivatives_kernel {
     float err = w * error.transpose() * RCR_inv * error;
 
     Eigen::Matrix<float, 3, 6> dtdx0;
-    dtdx0.block<3, 3>(0, 0) = skew_symmetric(transed_mean_A);
+    dtdx0.block<3, 3>(0, 0) = skew_symmetric(R * mean_A);
     dtdx0.block<3, 3>(0, 3) = -Eigen::Matrix3f::Identity();
 
     Eigen::Matrix<float, 3, 6> J = dtdx0;

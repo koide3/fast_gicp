@@ -79,7 +79,7 @@ struct compute_derivatives_kernel {
     Eigen::Vector3f error = mean_B - transed_mean_A;
 
     Eigen::Matrix<float, 3, 6> dtdx0;
-    dtdx0.block<3, 3>(0, 0) = skew_symmetric(transed_mean_A);
+    dtdx0.block<3, 3>(0, 0) = skew_symmetric(R * mean_A);
     dtdx0.block<3, 3>(0, 3) = -Eigen::Matrix3f::Identity();
 
     Eigen::Matrix<float, 3, 6> J = dtdx0;

@@ -186,7 +186,7 @@ double FastGICP<PointSource, PointTarget>::linearize(const Eigen::Isometry3d& tr
     }
 
     Eigen::Matrix<double, 4, 6> dtdx0 = Eigen::Matrix<double, 4, 6>::Zero();
-    dtdx0.block<3, 3>(0, 0) = skewd(transed_mean_A.head<3>());
+    dtdx0.block<3, 3>(0, 0) = skewd(trans.linear() * mean_A.head<3>());
     dtdx0.block<3, 3>(0, 3) = -Eigen::Matrix3d::Identity();
 
     Eigen::Matrix<double, 4, 6> jlossexp = dtdx0;

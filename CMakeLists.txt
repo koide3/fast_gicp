@@ -6,19 +6,11 @@ option(BUILD_apps "Build application programs" ON)
 option(BUILD_test "Build test programs" OFF)
 option(BUILD_PYTHON_BINDINGS "Build python bindings" OFF)
 
-if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64" OR ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm64")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=native")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mtune=native")
-else()
-  add_definitions(-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2)
-  set(CMAKE_C_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2 -march=native")
-  set(CMAKE_CXX_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2 -march=native")
-endif()
-
 set(CMAKE_BUILD_TYPE "Release")
 
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
+add_definitions(${PCL_DEFINITIONS})
 
 if(DEFINED ENV{ROS_VERSION})
   set(ROS_VERSION $ENV{ROS_VERSION})

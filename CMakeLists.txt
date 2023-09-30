@@ -6,8 +6,6 @@ option(BUILD_apps "Build application programs" ON)
 option(BUILD_test "Build test programs" OFF)
 option(BUILD_PYTHON_BINDINGS "Build python bindings" OFF)
 
-set(CMAKE_BUILD_TYPE "Release")
-
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
 add_definitions(${PCL_DEFINITIONS})
@@ -184,4 +182,11 @@ elseif (ament_cmake_FOUND)
       DIRECTORY "include/"
       DESTINATION include
     )
+else()
+  install(TARGETS ${PROJECT_NAME}
+      LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+
+  install(DIRECTORY include/
+      DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+    FILES_MATCHING PATTERN "*.hpp")
 endif()

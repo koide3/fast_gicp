@@ -101,6 +101,9 @@ void FastGICP<PointSource, PointTarget>::setTargetCovariances(const std::vector<
 
 template <typename PointSource, typename PointTarget>
 void FastGICP<PointSource, PointTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
+  if (output.points.data() == input_->points.data() || output.points.data() == target_->points.data()) {
+    throw std::invalid_argument("FastGICP: destination cloud cannot be identical to source or target");
+  }
   if (source_covs_.size() != input_->size()) {
     calculate_covariances(input_, *source_kdtree_, source_covs_);
   }

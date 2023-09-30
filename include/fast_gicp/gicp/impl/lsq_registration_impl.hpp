@@ -5,8 +5,8 @@
 
 namespace fast_gicp {
 
-template <typename PointTarget, typename PointSource>
-LsqRegistration<PointTarget, PointSource>::LsqRegistration() {
+template <typename PointTarget, typename PointSource, int N>
+LsqRegistration<PointTarget, PointSource, N>::LsqRegistration() {
   this->reg_name_ = "LsqRegistration";
   max_iterations_ = 64;
   rotation_epsilon_ = 2e-3;
@@ -19,38 +19,45 @@ LsqRegistration<PointTarget, PointSource>::LsqRegistration() {
   lm_lambda_ = -1.0;
 
   final_hessian_.setIdentity();
+
+  foo_ = std::make_shared<Foo<N>>();
 }
 
-template <typename PointTarget, typename PointSource>
-LsqRegistration<PointTarget, PointSource>::~LsqRegistration() {}
+template <typename PointTarget, typename PointSource, int N>
+void LsqRegistration<PointTarget, PointSource, N>::setFoo(const typename Foo<N>::Ptr foo) {
+  this->foo_ = foo;
+}
 
-template <typename PointTarget, typename PointSource>
-void LsqRegistration<PointTarget, PointSource>::setRotationEpsilon(double eps) {
+template <typename PointTarget, typename PointSource, int N>
+LsqRegistration<PointTarget, PointSource, N>::~LsqRegistration() {}
+
+template <typename PointTarget, typename PointSource, int N>
+void LsqRegistration<PointTarget, PointSource, N>::setRotationEpsilon(double eps) {
   rotation_epsilon_ = eps;
 }
 
-template <typename PointTarget, typename PointSource>
-void LsqRegistration<PointTarget, PointSource>::setInitialLambdaFactor(double init_lambda_factor) {
+template <typename PointTarget, typename PointSource, int N>
+void LsqRegistration<PointTarget, PointSource, N>::setInitialLambdaFactor(double init_lambda_factor) {
   lm_init_lambda_factor_ = init_lambda_factor;
 }
 
-template <typename PointTarget, typename PointSource>
-void LsqRegistration<PointTarget, PointSource>::setDebugPrint(bool lm_debug_print) {
+template <typename PointTarget, typename PointSource, int N>
+void LsqRegistration<PointTarget, PointSource, N>::setDebugPrint(bool lm_debug_print) {
   lm_debug_print_ = lm_debug_print;
 }
 
-template <typename PointTarget, typename PointSource>
-const Eigen::Matrix<double, 6, 6>& LsqRegistration<PointTarget, PointSource>::getFinalHessian() const {
+template <typename PointTarget, typename PointSource, int N>
+const Eigen::Matrix<double, 6, 6>& LsqRegistration<PointTarget, PointSource, N>::getFinalHessian() const {
   return final_hessian_;
 }
 
-template <typename PointTarget, typename PointSource>
-double LsqRegistration<PointTarget, PointSource>::evaluateCost(const Eigen::Matrix4f& relative_pose, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) {
+template <typename PointTarget, typename PointSource, int N>
+double LsqRegistration<PointTarget, PointSource, N>::evaluateCost(const Eigen::Matrix4f& relative_pose, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) {
   return this->linearize(Eigen::Isometry3f(relative_pose).cast<double>(), H, b);
 }
 
-template <typename PointTarget, typename PointSource>
-void LsqRegistration<PointTarget, PointSource>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
+template <typename PointTarget, typename PointSource, int N>
+void LsqRegistration<PointTarget, PointSource, N>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
   Eigen::Isometry3d x0 = Eigen::Isometry3d(guess.template cast<double>());
 
   lm_lambda_ = -1.0;
@@ -78,8 +85,8 @@ void LsqRegistration<PointTarget, PointSource>::computeTransformation(PointCloud
   pcl::transformPointCloud(*input_, output, final_transformation_);
 }
 
-template <typename PointTarget, typename PointSource>
-bool LsqRegistration<PointTarget, PointSource>::is_converged(const Eigen::Isometry3d& delta) const {
+template <typename PointTarget, typename PointSource, int N>
+bool LsqRegistration<PointTarget, PointSource, N>::is_converged(const Eigen::Isometry3d& delta) const {
   double accum = 0.0;
   Eigen::Matrix3d R = delta.linear() - Eigen::Matrix3d::Identity();
   Eigen::Vector3d t = delta.translation();
@@ -90,8 +97,8 @@ bool LsqRegistration<PointTarget, PointSource>::is_converged(const Eigen::Isomet
   return std::max(r_delta.maxCoeff(), t_delta.maxCoeff()) < 1;
 }
 
-template <typename PointTarget, typename PointSource>
-bool LsqRegistration<PointTarget, PointSource>::step_optimize(Eigen::Isometry3d& x0, Eigen::Isometry3d& delta) {
+template <typename PointTarget, typename PointSource, int N>
+bool LsqRegistration<PointTarget, PointSource, N>::step_optimize(Eigen::Isometry3d& x0, Eigen::Isometry3d& delta) {
   switch (lsq_optimizer_type_) {
     case LSQ_OPTIMIZER_TYPE::LevenbergMarquardt:
       return step_lm(x0, delta);
@@ -102,8 +109,8 @@ bool LsqRegistration<PointTarget, PointSource>::step_optimize(Eigen::Isometry3d&
   return step_lm(x0, delta);
 }
 
-template <typename PointTarget, typename PointSource>
-bool LsqRegistration<PointTarget, PointSource>::step_gn(Eigen::Isometry3d& x0, Eigen::Isometry3d& delta) {
+template <typename PointTarget, typename PointSource, int N>
+bool LsqRegistration<PointTarget, PointSource, N>::step_gn(Eigen::Isometry3d& x0, Eigen::Isometry3d& delta) {
   Eigen::Matrix<double, 6, 6> H;
   Eigen::Matrix<double, 6, 1> b;
   double y0 = linearize(x0, &H, &b);
@@ -121,8 +128,8 @@ bool LsqRegistration<PointTarget, PointSource>::step_gn(Eigen::Isometry3d& x0, E
   return true;
 }
 
-template <typename PointTarget, typename PointSource>
-bool LsqRegistration<PointTarget, PointSource>::step_lm(Eigen::Isometry3d& x0, Eigen::Isometry3d& delta) {
+template <typename PointTarget, typename PointSource, int N>
+bool LsqRegistration<PointTarget, PointSource, N>::step_lm(Eigen::Isometry3d& x0, Eigen::Isometry3d& delta) {
   Eigen::Matrix<double, 6, 6> H;
   Eigen::Matrix<double, 6, 1> b;
   double y0 = linearize(x0, &H, &b);
@@ -133,8 +140,8 @@ bool LsqRegistration<PointTarget, PointSource>::step_lm(Eigen::Isometry3d& x0, E
 
   double nu = 2.0;
   for (int i = 0; i < lm_max_iterations_; i++) {
-    Eigen::LDLT<Eigen::Matrix<double, 6, 6>> solver(H + lm_lambda_ * Eigen::Matrix<double, 6, 6>::Identity());
-    Eigen::Matrix<double, 6, 1> d = solver.solve(-b);
+    Eigen::LDLT<Eigen::Matrix<double, N, N>> solver(foo_->reduce_H(H) + lm_lambda_ * Eigen::Matrix<double, N, N>::Identity());
+    Eigen::Matrix<double, 6, 1> d = foo_->expand_b(solver.solve(-foo_->reduce_b(b)));
 
     delta.setIdentity();
     delta.linear() = so3_exp(d.head<3>()).toRotationMatrix();

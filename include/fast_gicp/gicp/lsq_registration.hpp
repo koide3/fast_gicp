@@ -14,18 +14,38 @@ enum class LSQ_OPTIMIZER_TYPE { GaussNewton, LevenbergMarquardt };
 
 template <int Dim>
 struct Foo {
-  virtual Eigen::Matrix<double, Dim, Dim> reduce_H(const Eigen::Matrix<double, 6, 6>& H_in) const { return H_in; }
-  virtual Eigen::Matrix<double, Dim, 1> reduce_b(const Eigen::Matrix<double, 6, 1>& b_in) const { return b_in; }
-  virtual Eigen::Matrix<double, 6, 1> expand_b(const Eigen::Matrix<double, Dim, 1>& b_in) const { return b_in; }
+  virtual Eigen::Matrix<double, Dim, Dim> reduce_H(const Eigen::Matrix<double, 6, 6>& H_in) const = 0;
+  virtual Eigen::Matrix<double, Dim, 1> reduce_b(const Eigen::Matrix<double, 6, 1>& b_in) const = 0;
+  virtual Eigen::Matrix<double, 6, 1> expand_b(const Eigen::Matrix<double, Dim, 1>& b_in) const = 0;
   using Ptr = std::shared_ptr<Foo<Dim>>;
 };
 
+template <>
+struct Foo<3> {
+  virtual Eigen::Matrix<double, 3, 3> reduce_H(const Eigen::Matrix<double, 6, 6>& H_in) const { return H_in.template topLeftCorner<3, 3>(); }
+  virtual Eigen::Matrix<double, 3, 1> reduce_b(const Eigen::Matrix<double, 6, 1>& b_in) const { return b_in.template topLeftCorner<3, 1>(); }
+  virtual Eigen::Matrix<double, 6, 1> expand_b(const Eigen::Matrix<double, 3, 1>& b_in) const {
+    Eigen::Matrix<double, 6, 1> d = Eigen::Matrix<double, 6, 1>::Zero();
+    d.topLeftCorner<3, 1>(3, 1) = b_in;
+    return d;
+  }
+  using Ptr = std::shared_ptr<Foo<3>>;
+};
+
+template <>
+struct Foo<6> {
+  virtual Eigen::Matrix<double, 6, 6> reduce_H(const Eigen::Matrix<double, 6, 6>& H_in) const { return H_in; }
+  virtual Eigen::Matrix<double, 6, 1> reduce_b(const Eigen::Matrix<double, 6, 1>& b_in) const { return b_in; }
+  virtual Eigen::Matrix<double, 6, 1> expand_b(const Eigen::Matrix<double, 6, 1>& b_in) const { return b_in; }
+  using Ptr = std::shared_ptr<Foo<6>>;
+};
+
 struct TranslationOnly : public Foo<3> {
-  Eigen::Matrix<double, 3, 3> reduce_H(const Eigen::Matrix<double, 6, 6>& H_in) const override { return H_in.bottomRightCorner(3, 3); }
-  Eigen::Matrix<double, 3, 1> reduce_b(const Eigen::Matrix<double, 6, 1>& b_in) const override { return b_in.bottomRightCorner(3, 1); }
+  Eigen::Matrix<double, 3, 3> reduce_H(const Eigen::Matrix<double, 6, 6>& H_in) const override { return H_in.template bottomRightCorner<3, 3>(); }
+  Eigen::Matrix<double, 3, 1> reduce_b(const Eigen::Matrix<double, 6, 1>& b_in) const override { return b_in.template bottomRightCorner<3, 1>(); }
   Eigen::Matrix<double, 6, 1> expand_b(const Eigen::Matrix<double, 3, 1>& b_in) const override {
     Eigen::Matrix<double, 6, 1> d = Eigen::Matrix<double, 6, 1>::Zero();
-    d.bottomRightCorner(3, 1) = b_in;
+    d.bottomRightCorner<3, 1>() = b_in;
     return d;
   }
 };

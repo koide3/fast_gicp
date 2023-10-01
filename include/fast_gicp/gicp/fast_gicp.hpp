@@ -6,7 +6,7 @@
 
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
-#include <pcl/search/kdtree.h>
+#include <pcl/search/search.h>
 #include <pcl/registration/registration.h>
 #include <fast_gicp/gicp/lsq_registration.hpp>
 #include <fast_gicp/gicp/gicp_settings.hpp>
@@ -16,7 +16,7 @@ namespace fast_gicp {
 /**
  * @brief Fast GICP algorithm optimized for multi threading with OpenMP
  */
-template<typename PointSource, typename PointTarget>
+template<typename PointSource, typename PointTarget, typename SearchMethodSource = pcl::search::KdTree<PointSource>, typename SearchMethodTarget = pcl::search::KdTree<PointTarget>>
 class FastGICP : public LsqRegistration<PointSource, PointTarget> {
 public:
   using Scalar = float;
@@ -79,7 +79,7 @@ protected:
   virtual double compute_error(const Eigen::Isometry3d& trans) override;
 
   template<typename PointT>
-  bool calculate_covariances(const typename pcl::PointCloud<PointT>::ConstPtr& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances);
+  bool calculate_covariances(const typename pcl::PointCloud<PointT>::ConstPtr& cloud, pcl::search::Search<PointT>& kdtree, std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances);
 
 protected:
   int num_threads_;
@@ -87,8 +87,8 @@ protected:
 
   RegularizationMethod regularization_method_;
 
-  std::shared_ptr<pcl::search::KdTree<PointSource>> source_kdtree_;
-  std::shared_ptr<pcl::search::KdTree<PointTarget>> target_kdtree_;
+  std::shared_ptr<SearchMethodSource> search_source_;
+  std::shared_ptr<SearchMethodTarget> search_target_;
 
   std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> source_covs_;
   std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>> target_covs_;

@@ -1,3 +1,5 @@
+#ifndef FAST_GICP_LSQ_REGISTRATION_IMPL_HPP
+#define FAST_GICP_LSQ_REGISTRATION_IMPL_HPP
 #include <fast_gicp/gicp/lsq_registration.hpp>
 
 #include <boost/format.hpp>
@@ -179,3 +181,4 @@ bool LsqRegistration<PointTarget, PointSource, N>::step_lm(Eigen::Isometry3d& x0
 }
 
 }  // namespace fast_gicp
+#endif

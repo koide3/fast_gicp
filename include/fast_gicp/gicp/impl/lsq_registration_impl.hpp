@@ -21,8 +21,6 @@ LsqRegistration<PointTarget, PointSource, N>::LsqRegistration() {
   lm_lambda_ = -1.0;
 
   final_hessian_.setIdentity();
-
-  foo_ = std::make_shared<Foo<N>>();
 }
 
 template <typename PointTarget, typename PointSource, int N>

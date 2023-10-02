@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10.0)
 project(fast_gicp)
+set(CMAKE_CXX_STANDARD 20)
 
 option(BUILD_VGICP_CUDA "Build GPU-powered VGICP" OFF)
 option(BUILD_apps "Build application programs" ON)

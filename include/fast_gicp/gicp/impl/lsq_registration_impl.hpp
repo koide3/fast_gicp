@@ -8,7 +8,7 @@
 namespace fast_gicp {
 
 template <typename PointTarget, typename PointSource, int N>
-LsqRegistration<PointTarget, PointSource, N>::LsqRegistration() {
+LsqRegistration<PointTarget, PointSource, N>::LsqRegistration(std::shared_ptr<OptimizationParamProcessor<N>> processor) {
   this->reg_name_ = "LsqRegistration";
   max_iterations_ = 64;
   rotation_epsilon_ = 2e-3;
@@ -21,11 +21,12 @@ LsqRegistration<PointTarget, PointSource, N>::LsqRegistration() {
   lm_lambda_ = -1.0;
 
   final_hessian_.setIdentity();
+  this->process_params_ = processor;
 }
 
 template <typename PointTarget, typename PointSource, int N>
-void LsqRegistration<PointTarget, PointSource, N>::setFoo(const typename Foo<N>::Ptr foo) {
-  this->foo_ = foo;
+void LsqRegistration<PointTarget, PointSource, N>::setOptimiuationParamProcessor(const typename OptimizationParamProcessor<N>::Ptr processor) {
+  this->process_params_ = processor;
 }
 
 template <typename PointTarget, typename PointSource, int N>
@@ -115,8 +116,8 @@ bool LsqRegistration<PointTarget, PointSource, N>::step_gn(Eigen::Isometry3d& x0
   Eigen::Matrix<double, 6, 1> b;
   double y0 = linearize(x0, &H, &b);
 
-  Eigen::LDLT<Eigen::Matrix<double, 6, 6>> solver(H);
-  Eigen::Matrix<double, 6, 1> d = solver.solve(-b);
+  Eigen::LDLT<Eigen::Matrix<double, N, N>> solver(process_params_->reduce_H(H));
+  Eigen::Matrix<double, 6, 1> d = process_params_->expand_b(solver.solve(-process_params_->reduce_b(b)));
 
   delta.setIdentity();
   delta.linear() = so3_exp(d.head<3>()).toRotationMatrix();
@@ -140,8 +141,8 @@ bool LsqRegistration<PointTarget, PointSource, N>::step_lm(Eigen::Isometry3d& x0
 
   double nu = 2.0;
   for (int i = 0; i < lm_max_iterations_; i++) {
-    Eigen::LDLT<Eigen::Matrix<double, N, N>> solver(foo_->reduce_H(H) + lm_lambda_ * Eigen::Matrix<double, N, N>::Identity());
-    Eigen::Matrix<double, 6, 1> d = foo_->expand_b(solver.solve(-foo_->reduce_b(b)));
+    Eigen::LDLT<Eigen::Matrix<double, N, N>> solver(process_params_->reduce_H(H) + lm_lambda_ * Eigen::Matrix<double, N, N>::Identity());
+    Eigen::Matrix<double, 6, 1> d = process_params_->expand_b(solver.solve(-process_params_->reduce_b(b)));
 
     delta.setIdentity();
     delta.linear() = so3_exp(d.head<3>()).toRotationMatrix();

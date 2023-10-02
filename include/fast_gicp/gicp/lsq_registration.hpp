@@ -13,15 +13,15 @@ namespace fast_gicp {
 enum class LSQ_OPTIMIZER_TYPE { GaussNewton, LevenbergMarquardt };
 
 template <int Dim>
-struct Foo {
+struct OptimizationParamProcessor {
   virtual Eigen::Matrix<double, Dim, Dim> reduce_H(const Eigen::Matrix<double, 6, 6>& H_in) const = 0;
   virtual Eigen::Matrix<double, Dim, 1> reduce_b(const Eigen::Matrix<double, 6, 1>& b_in) const = 0;
   virtual Eigen::Matrix<double, 6, 1> expand_b(const Eigen::Matrix<double, Dim, 1>& b_in) const = 0;
-  using Ptr = std::shared_ptr<Foo<Dim>>;
+  using Ptr = std::shared_ptr<OptimizationParamProcessor<Dim>>;
 };
 
 template <>
-struct Foo<3> {
+struct OptimizationParamProcessor<3> {
   virtual Eigen::Matrix<double, 3, 3> reduce_H(const Eigen::Matrix<double, 6, 6>& H_in) const { return H_in.template topLeftCorner<3, 3>(); }
   virtual Eigen::Matrix<double, 3, 1> reduce_b(const Eigen::Matrix<double, 6, 1>& b_in) const { return b_in.template topLeftCorner<3, 1>(); }
   virtual Eigen::Matrix<double, 6, 1> expand_b(const Eigen::Matrix<double, 3, 1>& b_in) const {
@@ -29,18 +29,18 @@ struct Foo<3> {
     d.topLeftCorner<3, 1>(3, 1) = b_in;
     return d;
   }
-  using Ptr = std::shared_ptr<Foo<3>>;
+  using Ptr = std::shared_ptr<OptimizationParamProcessor<3>>;
 };
 
 template <>
-struct Foo<6> {
+struct OptimizationParamProcessor<6> {
   virtual Eigen::Matrix<double, 6, 6> reduce_H(const Eigen::Matrix<double, 6, 6>& H_in) const { return H_in; }
   virtual Eigen::Matrix<double, 6, 1> reduce_b(const Eigen::Matrix<double, 6, 1>& b_in) const { return b_in; }
   virtual Eigen::Matrix<double, 6, 1> expand_b(const Eigen::Matrix<double, 6, 1>& b_in) const { return b_in; }
-  using Ptr = std::shared_ptr<Foo<6>>;
+  using Ptr = std::shared_ptr<OptimizationParamProcessor<6>>;
 };
 
-struct TranslationOnly : public Foo<3> {
+struct TranslationOnly : public OptimizationParamProcessor<3> {
   Eigen::Matrix<double, 3, 3> reduce_H(const Eigen::Matrix<double, 6, 6>& H_in) const override { return H_in.template bottomRightCorner<3, 3>(); }
   Eigen::Matrix<double, 3, 1> reduce_b(const Eigen::Matrix<double, 6, 1>& b_in) const override { return b_in.template bottomRightCorner<3, 1>(); }
   Eigen::Matrix<double, 6, 1> expand_b(const Eigen::Matrix<double, 3, 1>& b_in) const override {
@@ -65,10 +65,30 @@ struct count_true<false> {
 };
 
 template <bool... Args>
-struct CustomDOF : public Foo<count_true<Args...>::value> {
-  using KeepDOF = std::array<bool, count_true<Args...>::value>;
-  KeepDOF keep_dof;
-  CustomDOF(const KeepDOF& keep) {}
+struct CustomDOF : public OptimizationParamProcessor<(Args + ... + 0)> {
+  using KeepDOF = std::array<bool, 6>;
+  static constexpr int Dim = (Args + ... + 0);
+  KeepDOF keep_dof_;
+  /* template <std::same_as<bool>... Ts> */
+  /*   requires(sizeof...(Args) == sizeof...(Ts)) */
+  CustomDOF(decltype(Args)... args) {
+    static_assert(sizeof...(args) <= 6);
+
+    int i = 0;
+    ([&] { keep_dof_[i++] = args; }(), ...);
+
+    for (; i < 6; ++i) {
+      keep_dof_[i] = true;
+    }
+  }
+
+  Eigen::Matrix<double, Dim, Dim> reduce_H(const Eigen::Matrix<double, 6, 6>& H_in) const { return H_in(keep_dof_, keep_dof_); }
+  Eigen::Matrix<double, Dim, 1> reduce_b(const Eigen::Matrix<double, 6, 1>& b_in) const { return b_in(keep_dof_); }
+  Eigen::Matrix<double, 6, 1> expand_b(const Eigen::Matrix<double, Dim, 1>& b_in) const {
+    Eigen::Matrix<double, 6, 1> d = Eigen::Matrix<double, 6, 1>::Zero();
+    d(keep_dof_) = b_in;
+    return d;
+  }
 };
 
 template <typename PointSource, typename PointTarget, int Dim = 6>
@@ -104,14 +124,18 @@ protected:
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  LsqRegistration();
+  template <int D = Dim, typename std::enable_if<D == 6, bool>::type = true>
+  LsqRegistration() : LsqRegistration(std::make_shared<OptimizationParamProcessor<6>>()) {}
+
+  LsqRegistration(std::shared_ptr<OptimizationParamProcessor<Dim>> processor);
+
   virtual ~LsqRegistration();
 
   void setRotationEpsilon(double eps);
   void setInitialLambdaFactor(double init_lambda_factor);
   void setDebugPrint(bool lm_debug_print);
 
-  void setFoo(const typename Foo<Dim>::Ptr foo);
+  void setOptimiuationParamProcessor(const typename OptimizationParamProcessor<Dim>::Ptr processor);
 
   const Eigen::Matrix<double, 6, 6>& getFinalHessian() const;
 
@@ -142,7 +166,7 @@ protected:
   double lm_lambda_;
   bool lm_debug_print_;
 
-  typename Foo<Dim>::Ptr foo_;
+  typename OptimizationParamProcessor<Dim>::Ptr process_params_;
 
   Eigen::Matrix<double, 6, 6> final_hessian_;
 };

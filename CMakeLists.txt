@@ -146,6 +146,9 @@ if(BUILD_VGICP_CUDA)
   if(catkin_FOUND)
     install(TARGETS fast_vgicp_cuda
       LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
+  elseif (ament_cmake_FOUND)
+    install(TARGETS fast_vgicp_cuda
+      LIBRARY DESTINATION lib)
   endif()
 endif()
 

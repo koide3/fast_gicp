@@ -61,7 +61,7 @@ inline Eigen::Quaterniond so3_exp(const Eigen::Vector3d& omega) {
   double theta;
   double imag_factor;
   double real_factor;
-  if(theta_sq < 1e-10) {
+  if (theta_sq < 1e-10) {
     theta = 0;
     double theta_quad = theta_sq * theta_sq;
     imag_factor = 0.5 - 1.0 / 48.0 * theta_sq + 1.0 / 3840.0 * theta_quad;
@@ -74,6 +74,33 @@ inline Eigen::Quaterniond so3_exp(const Eigen::Vector3d& omega) {
   }
 
   return Eigen::Quaterniond(real_factor, imag_factor * omega.x(), imag_factor * omega.y(), imag_factor * omega.z());
+}
+
+// Rotation-first
+inline Eigen::Isometry3d se3_exp(const Eigen::Matrix<double, 6, 1>& a) {
+  using std::cos;
+  using std::sin;
+  const Eigen::Vector3d omega = a.head<3>();
+
+  double theta = std::sqrt(omega.dot(omega));
+  const Eigen::Quaterniond so3 = so3_exp(omega);
+  const Eigen::Matrix3d Omega = skewd(omega);
+  const Eigen::Matrix3d Omega_sq = Omega * Omega;
+  Eigen::Matrix3d V;
+
+  if (theta < 1e-10) {
+    V = so3.matrix();
+    /// Note: That is an accurate expansion!
+  } else {
+    const double theta_sq = theta * theta;
+    V = (Eigen::Matrix3d::Identity() + (1.0 - cos(theta)) / (theta_sq)*Omega + (theta - sin(theta)) / (theta_sq * theta) * Omega_sq);
+  }
+
+  Eigen::Isometry3d se3 = Eigen::Isometry3d::Identity();
+  se3.linear() = so3.toRotationMatrix();
+  se3.translation() = V * a.tail<3>();
+
+  return se3;
 }
 
 }  // namespace fast_gicp

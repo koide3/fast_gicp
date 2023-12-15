@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10.0)
 project(fast_gicp)
 
-option(BUILD_VGICP_CUDA "Build GPU-powered VGICP" OFF)
+option(BUILD_VGICP_CUDA "Build GPU-powered VGICP" ON)
 option(BUILD_apps "Build application programs" ON)
 option(BUILD_test "Build test programs" OFF)
 option(BUILD_PYTHON_BINDINGS "Build python bindings" OFF)
@@ -33,6 +33,7 @@ if (OPENMP_FOUND)
 endif()
 
 if(BUILD_VGICP_CUDA)
+  enable_language(CUDA)
   find_package(CUDAToolkit REQUIRED)
   include_directories(${CUDAToolkit_INCLUDE_DIRS})
   link_directories(${CUDAToolkit_LIBRARY_DIR})
@@ -52,6 +53,8 @@ endif()
 ## Build ##
 ###########
 
+link_directories(/home/neil/devel/glyd/.toolchain/c97040d85c983530acbe2e02c2327d0db40f6e7acb4dd8cbc280076c92c33ccf/sysroot/lib)
+
 add_library(fast_gicp SHARED
   src/fast_gicp/gicp/lsq_registration.cpp
   src/fast_gicp/gicp/fast_gicp.cpp
@@ -60,6 +63,9 @@ add_library(fast_gicp SHARED
 )
 target_link_libraries(fast_gicp
   ${PCL_LIBRARIES}
+)
+target_link_directories(fast_gicp
+  PUBLIC /home/neil/devel/glyd/.toolchain/c97040d85c983530acbe2e02c2327d0db40f6e7acb4dd8cbc280076c92c33ccf/sysroot/lib
 )
 if (OPENMP_FOUND)
     if (TARGET OpenMP::OpenMP_CXX)
@@ -110,7 +116,7 @@ if(BUILD_VGICP_CUDA)
   set(CUDA_NVCC_FLAGS "--expt-relaxed-constexpr")
   add_definitions(-DUSE_VGICP_CUDA)
 
-  cuda_add_library(fast_vgicp_cuda SHARED
+  add_library(fast_vgicp_cuda SHARED
     src/fast_gicp/cuda/fast_vgicp_cuda.cu
     src/fast_gicp/cuda/brute_force_knn.cu
     src/fast_gicp/cuda/covariance_estimation.cu
@@ -127,9 +133,16 @@ if(BUILD_VGICP_CUDA)
     include
     thirdparty/Eigen
     thirdparty/nvbio
+    ${OpenMP_CXX_FLAGS}
+    ld
     ${catkin_INCLUDE_DIRS}
   )
+  target_link_directories(fast_vgicp_cuda
+    /home/neil/devel/glyd/.toolchain/c97040d85c983530acbe2e02c2327d0db40f6e7acb4dd8cbc280076c92c33ccf/sysroot/lib
+  )
   target_link_libraries(fast_vgicp_cuda
+    ${OpenMP_CXX_FLAGS}
+
     ${catkin_LIBRARIES}
   )
   cuda_add_cublas_to_target(fast_vgicp_cuda)
@@ -141,6 +154,8 @@ if(BUILD_VGICP_CUDA)
   )
   target_link_libraries(fast_gicp
     fast_vgicp_cuda
+    ${OpenMP_CXX_FLAGS}
+    ld
   )
   add_dependencies(fast_gicp fast_vgicp_cuda)
   if(catkin_FOUND)

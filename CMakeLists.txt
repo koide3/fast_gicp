@@ -33,9 +33,9 @@ if (OPENMP_FOUND)
 endif()
 
 if(BUILD_VGICP_CUDA)
-  find_package(CUDA REQUIRED)
-  include_directories(${CUDA_INCLUDE_DIRS})
-  link_directories(${CUDA_LIBRARY_DIRS})
+  find_package(CUDAToolkit REQUIRED)
+  include_directories(${CUDAToolkit_INCLUDE_DIRS})
+  link_directories(${CUDAToolkit_LIBRARY_DIR})
 endif()
 
 ###################################

@@ -74,14 +74,18 @@ add_library(fast_gicp SHARED
   src/fast_gicp/gicp/fast_gicp_st.cpp
   src/fast_gicp/gicp/fast_vgicp.cpp
 )
+
+set_property(TARGET fast_gicp PROPERTY CUDA_STANDARD 17)
+
 target_link_libraries(fast_gicp
   ${PCL_LIBRARIES}
+  dl
 )
-if (OPENMP_FOUND)
-    if (TARGET OpenMP::OpenMP_CXX)
-        target_link_libraries(fast_gicp OpenMP::OpenMP_CXX)
-    endif ()
-endif ()
+# if (OPENMP_FOUND)
+#     if (TARGET OpenMP::OpenMP_CXX)
+#         target_link_libraries(fast_gicp OpenMP::OpenMP_CXX)
+#     endif ()
+# endif ()
 target_include_directories(fast_gicp PUBLIC
   include
   ${PCL_INCLUDE_DIRS}
@@ -92,17 +96,20 @@ target_include_directories(fast_gicp PUBLIC
 if(BUILD_apps)
   add_executable(gicp_align src/align.cpp)
   add_dependencies(gicp_align fast_gicp)
+  set_property(TARGET gicp_align PROPERTY CUDA_STANDARD 17)
   target_link_libraries(gicp_align
     ${PCL_LIBRARIES}
     fast_gicp
+    dl
   )
 
-  add_executable(gicp_kitti src/kitti.cpp)
-  add_dependencies(gicp_kitti fast_gicp)
-  target_link_libraries(gicp_kitti
-    ${PCL_LIBRARIES}
-    fast_gicp
-  )
+  # add_executable(gicp_kitti src/kitti.cpp)
+  # add_dependencies(gicp_kitti fast_gicp)
+  # set_property(TARGET gicp_kitti PROPERTY CUDA_STANDARD 17)
+  # target_link_libraries(gicp_kitti
+  #   ${PCL_LIBRARIES}
+  #   fast_gicp
+  # )
 endif()
 
 ### Python bindings ###
@@ -118,6 +125,7 @@ if(BUILD_PYTHON_BINDINGS)
   )
   target_link_libraries(pygicp PRIVATE
     fast_gicp
+    dl
   )
 endif()
 
@@ -139,6 +147,7 @@ if(BUILD_VGICP_CUDA)
     src/fast_gicp/cuda/ndt_cuda.cu
     src/fast_gicp/cuda/ndt_compute_derivatives.cu
   )
+  set_property(TARGET fast_vgicp_cuda PROPERTY CUDA_STANDARD 17)
   target_include_directories(fast_vgicp_cuda PRIVATE
     include
     thirdparty/Eigen
@@ -147,6 +156,7 @@ if(BUILD_VGICP_CUDA)
   )
   target_link_libraries(fast_vgicp_cuda
     ${catkin_LIBRARIES}
+    dl
   )
   # cuda_add_cublas_to_target(fast_vgicp_cuda)
 
@@ -157,6 +167,7 @@ if(BUILD_VGICP_CUDA)
   )
   target_link_libraries(fast_gicp
     fast_vgicp_cuda
+    dl
   )
   add_dependencies(fast_gicp fast_vgicp_cuda)
   if(catkin_FOUND)

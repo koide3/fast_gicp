@@ -74,18 +74,24 @@ void NDTCuda<PointSource, PointTarget>::setInputTarget(const PointCloudTargetCon
 
 template <typename PointSource, typename PointTarget>
 void NDTCuda<PointSource, PointTarget>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
+  // std::cout << __FILE__ << " " << __LINE__ << "\n";
   ndt_cuda_->create_voxelmaps();
   LsqRegistration<PointSource, PointTarget>::computeTransformation(output, guess);
+  // std::cout << __FILE__ << " " << __LINE__ << "\n";
+  //  std::cout << "After NDTCUDA ComputeTransformation: final_transformation: \n" << getFinalTransformation() << "\n";
+  //   Is final_transformation_ = x0.cast<float>().matrix(); populated here?
 }
 
 template <typename PointSource, typename PointTarget>
 double NDTCuda<PointSource, PointTarget>::linearize(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) {
   ndt_cuda_->update_correspondences(trans);
+  std::cout << __FILE__ << " " << __LINE__ << "\n";
   return ndt_cuda_->compute_error(trans, H, b);
 }
 
 template <typename PointSource, typename PointTarget>
 double NDTCuda<PointSource, PointTarget>::compute_error(const Eigen::Isometry3d& trans) {
+  std::cout << __FILE__ << " " << __LINE__ << "\n";
   return ndt_cuda_->compute_error(trans, nullptr, nullptr);
 }
 

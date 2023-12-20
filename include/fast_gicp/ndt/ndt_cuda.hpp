@@ -54,17 +54,17 @@ public:
   void setResolution(double resolution);
   void setNeighborSearchMethod(NeighborSearchMethod method, double radius = -1.0);
 
-  virtual void swapSourceAndTarget() override;
-  virtual void clearSource() override;
-  virtual void clearTarget() override;
+  void swapSourceAndTarget() override;
+  void clearSource() override;
+  void clearTarget() override;
 
-  virtual void setInputSource(const PointCloudSourceConstPtr& cloud) override;
-  virtual void setInputTarget(const PointCloudTargetConstPtr& cloud) override;
+  void setInputSource(const PointCloudSourceConstPtr& cloud) override;
+  void setInputTarget(const PointCloudTargetConstPtr& cloud) override;
 
 protected:
-  virtual void computeTransformation(PointCloudSource& output, const Matrix4& guess) override;
-  virtual double linearize(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) override;
-  virtual double compute_error(const Eigen::Isometry3d& trans) override;
+  void computeTransformation(PointCloudSource& output, const Matrix4& guess) override;
+  double linearize(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) override;
+  double compute_error(const Eigen::Isometry3d& trans) override;
 
 protected:
   std::unique_ptr<cuda::NDTCudaCore> ndt_cuda_;

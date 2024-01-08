@@ -12,30 +12,6 @@ find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
 add_definitions(${PCL_DEFINITIONS})
 
-if(DEFINED ENV{ROS_VERSION})
-  set(ROS_VERSION $ENV{ROS_VERSION})
-endif()
-
-if(NOT BUILD_PYTHON_BINDINGS)
-  if(${ROS_VERSION})
-    if(${ROS_VERSION} EQUAL 1)
-      find_package(catkin)
-    elseif (${ROS_VERSION} EQUAL 2)
-      find_package(ament_cmake)
-    endif()
-  endif()
-endif()
-
-###################################
-## catkin specific configuration ##
-###################################
-if(catkin_FOUND)
-  catkin_package(
-    INCLUDE_DIRS include
-    LIBRARIES fast_gicp
-  )
-endif()
-
 ###########
 ## Build ##
 ###########
@@ -56,40 +32,13 @@ glyd_add_library(fast_gicp SHARED
         pcl::pcl_search
         pcl::pcl_io
         fast_vgicp_cuda
-        ${OpenMP_CXX_FLAGS}
-        lz4::lz4
-        PNG::png
     COMPILE_OPTIONS
         ${OpenMP_CXX_FLAGS}
 )
 
 target_include_directories(fast_gicp PUBLIC
   include
-  ${PCL_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIR}
 )
-
-### APPS ###
-if(BUILD_apps)
-    glyd_add_executable(
-        gicp_align
-        SOURCES
-            src/align.cpp
-        LIBRARIES
-            fast_gicp
-            pcl::pcl_common
-            pcl::pcl_registration
-            pcl::pcl_filters
-            pcl::pcl_kdtree
-            pcl::pcl_search
-            pcl::pcl_io
-            ${OpenMP_CXX_FLAGS}
-            lz4::lz4
-            PNG::png
-	      COMPILE_OPTIONS
-            ${OpenMP_CXX_FLAGS}
-    )
-endif()
 
 ### CUDA ###
 if(BUILD_VGICP_CUDA)
@@ -115,12 +64,8 @@ if(BUILD_VGICP_CUDA)
             pcl::pcl_kdtree
             pcl::pcl_search
             pcl::pcl_io
-            ${OpenMP_CXX_FLAGS}
-            ${catkin_LIBRARIES}
             CUDA::cublas
             CUDA::curand
-            lz4::lz4
-            PNG::png
     )
     set_property(
         TARGET
@@ -136,6 +81,24 @@ if(BUILD_VGICP_CUDA)
         thirdparty/Eigen
         thirdparty/nvbio
         ${OpenMP_CXX_FLAGS}
-        ${catkin_INCLUDE_DIRS}
+    )
+endif()
+
+### APPS ###
+if(BUILD_apps)
+    glyd_add_executable(
+        gicp_align
+        SOURCES
+            src/align.cpp
+        LIBRARIES
+            fast_gicp
+            pcl::pcl_common
+            pcl::pcl_registration
+            pcl::pcl_filters
+            pcl::pcl_kdtree
+            pcl::pcl_search
+            pcl::pcl_io
+	      COMPILE_OPTIONS
+            ${OpenMP_CXX_FLAGS}
     )
 endif()

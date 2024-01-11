@@ -12,7 +12,7 @@ namespace fast_gicp {
 
 enum class LSQ_OPTIMIZER_TYPE { GaussNewton, LevenbergMarquardt };
 
-template <typename PointSource, typename PointTarget>
+template<typename PointSource, typename PointTarget>
 class LsqRegistration : public pcl::Registration<PointSource, PointTarget, float> {
 public:
   using Scalar = float;

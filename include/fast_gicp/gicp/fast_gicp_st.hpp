@@ -16,7 +16,7 @@ namespace fast_gicp {
 /**
  * @brief Fast GICP algorithm optimized for single threading
  */
-template <typename PointSource, typename PointTarget>
+template<typename PointSource, typename PointTarget>
 class FastGICPSingleThread : public FastGICP<PointSource, PointTarget> {
 public:
   using Scalar = float;
@@ -50,14 +50,14 @@ public:
   virtual ~FastGICPSingleThread() override;
 
 protected:
-  void computeTransformation(PointCloudSource& output, const Matrix4& guess) override;
+  virtual void computeTransformation(PointCloudSource& output, const Matrix4& guess) override;
 
 private:
-  void update_correspondences(const Eigen::Isometry3d& trans) override;
+  virtual void update_correspondences(const Eigen::Isometry3d& trans) override;
 
-  double linearize(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H = nullptr, Eigen::Matrix<double, 6, 1>* b = nullptr) override;
+  virtual double linearize(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H = nullptr, Eigen::Matrix<double, 6, 1>* b = nullptr) override;
 
-  double compute_error(const Eigen::Isometry3d& trans) override;
+  virtual double compute_error(const Eigen::Isometry3d& trans) override;
 
 private:
   std::vector<float> second_sq_distances_;

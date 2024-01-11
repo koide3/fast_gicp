@@ -51,7 +51,6 @@ double LsqRegistration<PointTarget, PointSource>::evaluateCost(const Eigen::Matr
 
 template <typename PointTarget, typename PointSource>
 void LsqRegistration<PointTarget, PointSource>::computeTransformation(PointCloudSource& output, const Matrix4& guess) {
-  // std::cout << __FILE__ << " " << __LINE__ << "\n";
   Eigen::Isometry3d x0 = Eigen::Isometry3d(guess.template cast<double>());
 
   lm_lambda_ = -1.0;
@@ -76,9 +75,7 @@ void LsqRegistration<PointTarget, PointSource>::computeTransformation(PointCloud
   }
 
   final_transformation_ = x0.cast<float>().matrix();
-  // std::cout << "LsqRegistration: Output: x0: \n" << x0.cast<float>().matrix() << "\n  final transformation: \n" << final_transformation_ << "\n";
   pcl::transformPointCloud(*input_, output, final_transformation_);
-  // std::cout << __FILE__ << " " << __LINE__ << "\n";
 }
 
 template <typename PointTarget, typename PointSource>

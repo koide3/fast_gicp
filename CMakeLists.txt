@@ -26,11 +26,22 @@ glyd_add_library(fast_gicp SHARED
         src/fast_gicp/ndt/ndt_cuda.cpp
     LIBRARIES
         pcl::pcl_common
-        pcl::pcl_registration
+        pcl::pcl_features
         pcl::pcl_filters
-        pcl::pcl_kdtree
-        pcl::pcl_search
         pcl::pcl_io
+        pcl::pcl_kdtree
+        pcl::pcl_ml
+        pcl::pcl_octree
+        pcl::pcl_registration
+        pcl::pcl_sample_consensus
+        pcl::pcl_search
+        pcl::pcl_segmentation
+        pcl::pcl_stereo
+        pcl::pcl_surface
+        pcl::pcl_tracking
+        pcl::pcl_cuda_features
+        pcl::pcl_cuda_sample_consensus
+        pcl::pcl_cuda_segmentation
         fast_vgicp_cuda
     COMPILE_OPTIONS
         ${OpenMP_CXX_FLAGS}
@@ -59,11 +70,22 @@ if(BUILD_VGICP_CUDA)
             src/fast_gicp/cuda/ndt_compute_derivatives.cu
         LIBRARIES
             pcl::pcl_common
-            pcl::pcl_registration
+            pcl::pcl_features
             pcl::pcl_filters
-            pcl::pcl_kdtree
-            pcl::pcl_search
             pcl::pcl_io
+            pcl::pcl_kdtree
+            pcl::pcl_ml
+            pcl::pcl_octree
+            pcl::pcl_registration
+            pcl::pcl_sample_consensus
+            pcl::pcl_search
+            pcl::pcl_segmentation
+            pcl::pcl_stereo
+            pcl::pcl_surface
+            pcl::pcl_tracking
+            pcl::pcl_cuda_features
+            pcl::pcl_cuda_sample_consensus
+            pcl::pcl_cuda_segmentation
             CUDA::cublas
             CUDA::curand
     )
@@ -93,11 +115,22 @@ if(BUILD_apps)
         LIBRARIES
             fast_gicp
             pcl::pcl_common
-            pcl::pcl_registration
+            pcl::pcl_features
             pcl::pcl_filters
-            pcl::pcl_kdtree
-            pcl::pcl_search
             pcl::pcl_io
+            pcl::pcl_kdtree
+            pcl::pcl_ml
+            pcl::pcl_octree
+            pcl::pcl_registration
+            pcl::pcl_sample_consensus
+            pcl::pcl_search
+            pcl::pcl_segmentation
+            pcl::pcl_stereo
+            pcl::pcl_surface
+            pcl::pcl_tracking
+            pcl::pcl_cuda_features
+            pcl::pcl_cuda_sample_consensus
+            pcl::pcl_cuda_segmentation
 	      COMPILE_OPTIONS
             ${OpenMP_CXX_FLAGS}
     )

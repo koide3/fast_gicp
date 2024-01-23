@@ -32,18 +32,10 @@ glyd_add_library(fast_gicp SHARED
         pcl::pcl_filters
         pcl::pcl_io
         pcl::pcl_kdtree
-        pcl::pcl_ml
         pcl::pcl_octree
         pcl::pcl_registration
         pcl::pcl_sample_consensus
         pcl::pcl_search
-        pcl::pcl_segmentation
-        pcl::pcl_stereo
-        pcl::pcl_surface
-        pcl::pcl_tracking
-        pcl::pcl_cuda_features
-        pcl::pcl_cuda_sample_consensus
-        pcl::pcl_cuda_segmentation
         fast_vgicp_cuda
     COMPILE_OPTIONS
         ${OpenMP_CXX_FLAGS}
@@ -76,18 +68,10 @@ if(BUILD_VGICP_CUDA)
             pcl::pcl_filters
             pcl::pcl_io
             pcl::pcl_kdtree
-            pcl::pcl_ml
             pcl::pcl_octree
             pcl::pcl_registration
             pcl::pcl_sample_consensus
             pcl::pcl_search
-            pcl::pcl_segmentation
-            pcl::pcl_stereo
-            pcl::pcl_surface
-            pcl::pcl_tracking
-            pcl::pcl_cuda_features
-            pcl::pcl_cuda_sample_consensus
-            pcl::pcl_cuda_segmentation
             Eigen3::Eigen
             CUDA::cublas
             CUDA::curand
@@ -121,18 +105,9 @@ if(BUILD_apps)
             pcl::pcl_filters
             pcl::pcl_io
             pcl::pcl_kdtree
-            pcl::pcl_ml
             pcl::pcl_octree
             pcl::pcl_registration
             pcl::pcl_sample_consensus
-            pcl::pcl_search
-            pcl::pcl_segmentation
-            pcl::pcl_stereo
-            pcl::pcl_surface
-            pcl::pcl_tracking
-            pcl::pcl_cuda_features
-            pcl::pcl_cuda_sample_consensus
-            pcl::pcl_cuda_segmentation
 	      COMPILE_OPTIONS
             ${OpenMP_CXX_FLAGS}
     )

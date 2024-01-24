@@ -1,4 +1,9 @@
 cmake_minimum_required(VERSION 3.10.0)
+
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+set(CMAKE_CUDA_ARCHITECTURES 61)
+endif()
+
 project(fast_gicp LANGUAGES CXX CUDA)
 
 option(BUILD_VGICP_CUDA "Build GPU-powered VGICP" ON)

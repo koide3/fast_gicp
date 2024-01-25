@@ -26,9 +26,9 @@ add_definitions(${PCL_DEFINITIONS})
 glyd_add_library(fast_gicp SHARED
     SOURCES
         src/fast_gicp/gicp/lsq_registration.cpp
-        src/fast_gicp/gicp/fast_gicp.cpp
-        src/fast_gicp/gicp/fast_gicp_st.cpp
-        src/fast_gicp/gicp/fast_vgicp.cpp
+        #src/fast_gicp/gicp/fast_gicp.cpp
+        #src/fast_gicp/gicp/fast_gicp_st.cpp
+        #src/fast_gicp/gicp/fast_vgicp.cpp
         src/fast_gicp/gicp/fast_vgicp_cuda.cpp
         src/fast_gicp/ndt/ndt_cuda.cpp
     LIBRARIES
@@ -42,8 +42,8 @@ glyd_add_library(fast_gicp SHARED
         pcl::pcl_sample_consensus
         pcl::pcl_search
         fast_vgicp_cuda
-    COMPILE_OPTIONS
-        ${OpenMP_CXX_FLAGS}
+    #COMPILE_OPTIONS
+    #    ${OpenMP_CXX_FLAGS}
 )
 
 target_include_directories(fast_gicp PUBLIC
@@ -88,12 +88,12 @@ if(BUILD_VGICP_CUDA)
             CUDA_STANDARD
             14
     )
-    set_target_properties(fast_vgicp_cuda PROPERTIES CUDA_ARCHITECTURES "61;72;86")
+    set_target_properties(fast_vgicp_cuda PROPERTIES CUDA_ARCHITECTURES "61;72;86;87")
 
     target_include_directories(fast_vgicp_cuda PRIVATE
         include
         thirdparty/nvbio
-        ${OpenMP_CXX_FLAGS}
+        # ${OpenMP_CXX_FLAGS}
     )
 endif()
 
@@ -113,7 +113,7 @@ if(BUILD_apps)
             pcl::pcl_octree
             pcl::pcl_registration
             pcl::pcl_sample_consensus
-	      COMPILE_OPTIONS
-            ${OpenMP_CXX_FLAGS}
+	      # COMPILE_OPTIONS
+            # ${OpenMP_CXX_FLAGS}
     )
 endif()

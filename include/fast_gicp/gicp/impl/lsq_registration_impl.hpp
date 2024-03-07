@@ -40,6 +40,11 @@ void LsqRegistration<PointTarget, PointSource>::setDebugPrint(bool lm_debug_prin
 }
 
 template <typename PointTarget, typename PointSource>
+void LsqRegistration<PointTarget, PointSource>::setMaxInnerLoopIterations(int num_iter) {
+  lm_max_iterations_ = num_iter;
+}
+
+template <typename PointTarget, typename PointSource>
 const Eigen::Matrix<double, 6, 6>& LsqRegistration<PointTarget, PointSource>::getFinalHessian() const {
   return final_hessian_;
 }

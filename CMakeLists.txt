@@ -7,6 +7,8 @@ option(BUILD_apps "Build application programs" ON)
 option(BUILD_test "Build test programs" OFF)
 option(BUILD_PYTHON_BINDINGS "Build python bindings" OFF)
 
+set(CMAKE_BUILD_TYPE "Release")
+
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
 add_definitions(${PCL_DEFINITIONS})
@@ -145,6 +147,9 @@ if(BUILD_VGICP_CUDA)
   if(catkin_FOUND)
     install(TARGETS fast_vgicp_cuda
       LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
+  elseif (ament_cmake_FOUND)
+    install(TARGETS fast_vgicp_cuda
+      LIBRARY DESTINATION lib)
   endif()
 endif()
 

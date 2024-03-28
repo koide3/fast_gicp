@@ -119,9 +119,7 @@ bool LsqRegistration<PointTarget, PointSource, N>::step_gn(Eigen::Isometry3d& x0
   Eigen::LDLT<Eigen::Matrix<double, N, N>> solver(process_params_->reduce_H(H));
   Eigen::Matrix<double, 6, 1> d = process_params_->expand_b(solver.solve(-process_params_->reduce_b(b)));
 
-  delta.setIdentity();
-  delta.linear() = so3_exp(d.head<3>()).toRotationMatrix();
-  delta.translation() = d.tail<3>();
+  delta = se3_exp(d);
 
   x0 = delta * x0;
   final_hessian_ = H;
@@ -144,9 +142,7 @@ bool LsqRegistration<PointTarget, PointSource, N>::step_lm(Eigen::Isometry3d& x0
     Eigen::LDLT<Eigen::Matrix<double, N, N>> solver(process_params_->reduce_H(H) + lm_lambda_ * Eigen::Matrix<double, N, N>::Identity());
     Eigen::Matrix<double, 6, 1> d = process_params_->expand_b(solver.solve(-process_params_->reduce_b(b)));
 
-    delta.setIdentity();
-    delta.linear() = so3_exp(d.head<3>()).toRotationMatrix();
-    delta.translation() = d.tail<3>();
+    delta = se3_exp(d);
 
     Eigen::Isometry3d xi = delta * x0;
     double yi = compute_error(xi);

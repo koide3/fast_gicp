@@ -90,14 +90,12 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget, 
 }
 
 template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget, int Dim>
-void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget, Dim>::setSourceCovariances(
-  const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs) {
+void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget, Dim>::setSourceCovariances(const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs) {
   source_covs_ = covs;
 }
 
 template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget, int Dim>
-void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget, Dim>::setTargetCovariances(
-  const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs) {
+void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget, Dim>::setTargetCovariances(const std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covs) {
   target_covs_ = covs;
 }
 
@@ -157,10 +155,7 @@ void FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget, 
 }
 
 template <typename PointSource, typename PointTarget, typename SearchMethodSource, typename SearchMethodTarget, int Dim>
-double FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget, Dim>::linearize(
-  const Eigen::Isometry3d& trans,
-  Eigen::Matrix<double, 6, 6>* H,
-  Eigen::Matrix<double, 6, 1>* b) {
+double FastGICP<PointSource, PointTarget, SearchMethodSource, SearchMethodTarget, Dim>::linearize(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) {
   update_correspondences(trans);
 
   double sum_errors = 0.0;

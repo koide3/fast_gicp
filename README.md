@@ -1,3 +1,8 @@
+
+# Note
+
+We released [small_gicp](https://github.com/koide3/small_gicp) that is twice as fast as fast_gicp and with minimum dependencies and clean interfaces.
+
 # fast_gicp
 
 This package is a collection of GICP-based fast point cloud registration algorithms. It constains a multi-threaded GICP as well as multi-thread and GPU implementations of our voxelized GICP (VGICP) algorithm. All the implemented algorithms have the PCL registration interface so that they can be used as an inplace replacement for GICP in PCL.
@@ -10,10 +15,6 @@ This package is a collection of GICP-based fast point cloud registration algorit
 ![proctime](data/proctime.png)
 
 [![Build](https://github.com/SMRT-AIST/fast_gicp/actions/workflows/build.yml/badge.svg)](https://github.com/SMRT-AIST/fast_gicp/actions/workflows/build.yml) on melodic & noetic
-
-## Note
-
-We released [small_gicp](https://github.com/koide3/small_gicp) that is twice as fast as fast_gicp and with minimum dependencies and clean interfaces.
 
 ## Installation
 

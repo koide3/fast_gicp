@@ -11,6 +11,10 @@ This package is a collection of GICP-based fast point cloud registration algorit
 
 [![Build](https://github.com/SMRT-AIST/fast_gicp/actions/workflows/build.yml/badge.svg)](https://github.com/SMRT-AIST/fast_gicp/actions/workflows/build.yml) on melodic & noetic
 
+## Note
+
+We released [small_gicp](https://github.com/koide3/small_gicp) that is twice as fast as fast_gicp and with minimum dependencies and clean interfaces.
+
 ## Installation
 
 ### Dependencies

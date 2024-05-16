@@ -13,6 +13,12 @@ option(BUILD_PYTHON_BINDINGS "Build python bindings" OFF)
 
 set(CMAKE_BUILD_TYPE "Release")
 
+# FIXME: this is only a hack around to avoid CMP0114 warnings from PCL
+# Please remove once PCL is patched
+if(POLICY CMP0144)
+set(CMAKE_POLICY_DEFAULT_CMP0144 OLD)
+endif()
+
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
 add_definitions(${PCL_DEFINITIONS})

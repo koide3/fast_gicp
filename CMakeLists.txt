@@ -11,6 +11,11 @@ option(BUILD_apps "Build application programs" ON)
 option(BUILD_test "Build test programs" OFF)
 option(BUILD_PYTHON_BINDINGS "Build python bindings" OFF)
 
+# FIXME: Please remove as soon as PCL is patched in ark
+if(POLICY CMP0144)
+  set(CMAKE_POLICY_DEFAULT_CMP0144 OLD)
+endif()
+
 set(CMAKE_BUILD_TYPE "Release")
 
 find_package(PCL REQUIRED)

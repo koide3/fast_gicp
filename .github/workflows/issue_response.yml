@@ -1,0 +1,20 @@
+on:
+  fork:
+  issues:
+    types: [opened]
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Leave Comment
+        run: gh issue comment "$NUMBER" --body "$BODY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+          BODY: >
+            Sorry!! We are reducing the support for fast_gicp.
+            Please consider using small_gicp, a new faster library with better portability.
+            https://github.com/koide3/small_gicp
+            Meanwhile, feel free to open a PR if you have any improvements that can be merged into fast_gicp.

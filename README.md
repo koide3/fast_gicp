@@ -1,5 +1,5 @@
 
-# Note
+# Note: New faster library is released
 
 We released [small_gicp](https://github.com/koide3/small_gicp) that is twice as fast as fast_gicp and with minimum dependencies and clean interfaces.
 

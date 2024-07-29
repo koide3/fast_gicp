@@ -135,7 +135,7 @@ public:
   void setInitialLambdaFactor(double init_lambda_factor);
   void setDebugPrint(bool lm_debug_print);
 
-  void setOptimiuationParamProcessor(const typename OptimizationParamProcessor<Dim>::Ptr processor);
+  void setOptimizationParamProcessor(const typename OptimizationParamProcessor<Dim>::Ptr processor);
 
   const Eigen::Matrix<double, 6, 6>& getFinalHessian() const;
 

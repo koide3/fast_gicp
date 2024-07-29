@@ -25,7 +25,7 @@ LsqRegistration<PointTarget, PointSource, N>::LsqRegistration(std::shared_ptr<Op
 }
 
 template <typename PointTarget, typename PointSource, int N>
-void LsqRegistration<PointTarget, PointSource, N>::setOptimiuationParamProcessor(const typename OptimizationParamProcessor<N>::Ptr processor) {
+void LsqRegistration<PointTarget, PointSource, N>::setOptimizationParamProcessor(const typename OptimizationParamProcessor<N>::Ptr processor) {
   this->process_params_ = processor;
 }
 

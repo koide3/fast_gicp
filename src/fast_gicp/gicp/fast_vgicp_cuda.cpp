@@ -4,3 +4,4 @@
 template class fast_gicp::FastVGICPCuda<pcl::PointXYZ, pcl::PointXYZ>;
 template class fast_gicp::FastVGICPCuda<pcl::PointXYZI, pcl::PointXYZI>;
 template class fast_gicp::FastVGICPCuda<pcl::PointNormal, pcl::PointNormal>;
+template class fast_gicp::FastVGICPCuda<pcl::PointXYZRGB, pcl::PointXYZRGB>;

@@ -4,3 +4,4 @@
 template class fast_gicp::LsqRegistration<pcl::PointXYZ, pcl::PointXYZ>;
 template class fast_gicp::LsqRegistration<pcl::PointXYZI, pcl::PointXYZI>;
 template class fast_gicp::LsqRegistration<pcl::PointNormal, pcl::PointNormal>;
+template class fast_gicp::LsqRegistration<pcl::PointXYZRGB, pcl::PointXYZRGB>;

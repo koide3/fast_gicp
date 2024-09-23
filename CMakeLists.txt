@@ -1,10 +1,20 @@
 cmake_minimum_required(VERSION 3.10.0)
 project(fast_gicp)
+set(CMAKE_CXX_STANDARD 20)
 
 option(BUILD_VGICP_CUDA "Build GPU-powered VGICP" OFF)
 option(BUILD_apps "Build application programs" ON)
 option(BUILD_test "Build test programs" OFF)
 option(BUILD_PYTHON_BINDINGS "Build python bindings" OFF)
+
+if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64" OR ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm64")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mtune=native")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mtune=native")
+else()
+  add_definitions(-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2)
+  set(CMAKE_C_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2 -march=native")
+  set(CMAKE_CXX_FLAGS "-msse -msse2 -msse3 -msse4 -msse4.1 -msse4.2 -march=native")
+endif()
 
 set(CMAKE_BUILD_TYPE "Release")
 
@@ -187,4 +197,11 @@ elseif (ament_cmake_FOUND)
       DIRECTORY "include/"
       DESTINATION include
     )
+else()
+  install(TARGETS ${PROJECT_NAME}
+      LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+
+  install(DIRECTORY include/
+      DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+    FILES_MATCHING PATTERN "*.hpp")
 endif()

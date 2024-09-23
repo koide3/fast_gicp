@@ -8,8 +8,8 @@
 #include <pcl/point_cloud.h>
 #include <pcl/filters/approximate_voxel_grid.h>
 
-#include <pcl/visualization/pcl_visualizer.h>
-#include <pcl/visualization/point_cloud_color_handlers.h>
+// #include <pcl/visualization/pcl_visualizer.h>
+// #include <pcl/visualization/point_cloud_color_handlers.h>
 
 #include <fast_gicp/gicp/fast_gicp.hpp>
 #include <fast_gicp/gicp/fast_vgicp.hpp>
@@ -105,52 +105,52 @@ int main(int argc, char** argv) {
   pcl::PointCloud<pcl::PointXYZ>::Ptr trajectory(new pcl::PointCloud<pcl::PointXYZ>);
   trajectory->push_back(pcl::PointXYZ(0.0f, 0.0f, 0.0f));
 
-  pcl::visualization::PCLVisualizer vis;
-  vis.addPointCloud<pcl::PointXYZ>(trajectory, "trajectory");
+  // pcl::visualization::PCLVisualizer vis;
+  // vis.addPointCloud<pcl::PointXYZ>(trajectory, "trajectory");
 
   // for calculating FPS
   boost::circular_buffer<std::chrono::high_resolution_clock::time_point> stamps(30);
   stamps.push_back(std::chrono::high_resolution_clock::now());
 
-  for (int i = 1; i < kitti.size(); i++) {
-    // set the current frame as source
-    voxelgrid.setInputCloud(kitti.cloud(i));
-    pcl::PointCloud<pcl::PointXYZ>::Ptr source(new pcl::PointCloud<pcl::PointXYZ>);
-    voxelgrid.filter(*source);
-    gicp.setInputSource(source);
+  // for (int i = 1; i < kitti.size(); i++) {
+  //   // set the current frame as source
+  //   voxelgrid.setInputCloud(kitti.cloud(i));
+  //   pcl::PointCloud<pcl::PointXYZ>::Ptr source(new pcl::PointCloud<pcl::PointXYZ>);
+  //   voxelgrid.filter(*source);
+  //   gicp.setInputSource(source);
 
-    // align and swap source and target cloud for next registration
-    pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>);
-    gicp.align(*aligned);
-    gicp.swapSourceAndTarget();
+  //   // align and swap source and target cloud for next registration
+  //   pcl::PointCloud<pcl::PointXYZ>::Ptr aligned(new pcl::PointCloud<pcl::PointXYZ>);
+  //   gicp.align(*aligned);
+  //   gicp.swapSourceAndTarget();
 
-    // accumulate pose
-    poses[i] = poses[i - 1] * gicp.getFinalTransformation().cast<double>();
+  //   // accumulate pose
+  //   poses[i] = poses[i - 1] * gicp.getFinalTransformation().cast<double>();
 
-    // FPS display
-    stamps.push_back(std::chrono::high_resolution_clock::now());
-    std::cout << stamps.size() / (std::chrono::duration_cast<std::chrono::nanoseconds>(stamps.back() - stamps.front()).count() / 1e9) << "fps" << std::endl;
+  //   // FPS display
+  //   stamps.push_back(std::chrono::high_resolution_clock::now());
+  //   std::cout << stamps.size() / (std::chrono::duration_cast<std::chrono::nanoseconds>(stamps.back() - stamps.front()).count() / 1e9) << "fps" << std::endl;
 
-    // visualization
-    trajectory->push_back(pcl::PointXYZ(poses[i](0, 3), poses[i](1, 3), poses[i](2, 3)));
-    vis.updatePointCloud<pcl::PointXYZ>(trajectory, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(trajectory, 255.0, 0.0, 0.0), "trajectory");
-    vis.spinOnce();
-  }
+  //   // visualization
+  //   trajectory->push_back(pcl::PointXYZ(poses[i](0, 3), poses[i](1, 3), poses[i](2, 3)));
+  //   // vis.updatePointCloud<pcl::PointXYZ>(trajectory, pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>(trajectory, 255.0, 0.0, 0.0), "trajectory");
+  //   // vis.spinOnce();
+  // }
 
   // save the estimated poses
-  std::ofstream ofs("/tmp/traj.txt");
-  for (const auto& pose : poses) {
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 4; j++) {
-        if (i || j) {
-          ofs << " ";
-        }
+  // std::ofstream ofs("/tmp/traj.txt");
+  // for (const auto& pose : poses) {
+  //   for (int i = 0; i < 3; i++) {
+  //     for (int j = 0; j < 4; j++) {
+  //       if (i || j) {
+  //         ofs << " ";
+  //       }
 
-        ofs << pose(i, j);
-      }
-    }
-    ofs << std::endl;
-  }
+  //       ofs << pose(i, j);
+  //     }
+  //   }
+  //   ofs << std::endl;
+  // }
 
   return 0;
 }

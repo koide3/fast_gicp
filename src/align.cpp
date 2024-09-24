@@ -37,14 +37,14 @@ void test_pcl(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr&
 
   // 100 times
   t1 = std::chrono::high_resolution_clock::now();
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 10; i++) {
     reg.setInputTarget(target);
     reg.setInputSource(source);
     reg.align(*aligned);
   }
   t2 = std::chrono::high_resolution_clock::now();
   double multi = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
-  std::cout << "100times:" << multi << "[msec] fitness_score:" << fitness_score << std::endl;
+  std::cout << "Avg over 10 runs:" << multi / 10.0 << "[msec] fitness_score:" << fitness_score << std::endl;
 }
 
 // benchmark for fast_gicp registration methods
@@ -71,7 +71,7 @@ void test(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& tar
 
   // 100 times
   t1 = std::chrono::high_resolution_clock::now();
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 10; i++) {
     reg.clearTarget();
     reg.clearSource();
     reg.setInputTarget(target);
@@ -80,14 +80,14 @@ void test(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& tar
   }
   t2 = std::chrono::high_resolution_clock::now();
   double multi = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
-  std::cout << "100times:" << multi << "[msec] " << std::flush;
+  std::cout << "Avg over 10 runs:" << multi / 10.0 << "[msec] " << std::flush;
 
   // for some tasks like odometry calculation,
   // you can reuse the covariances of a source point cloud in the next registration
   t1 = std::chrono::high_resolution_clock::now();
   pcl::PointCloud<pcl::PointXYZ>::ConstPtr target_ = target;
   pcl::PointCloud<pcl::PointXYZ>::ConstPtr source_ = source;
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 10; i++) {
     reg.swapSourceAndTarget();
     reg.clearSource();
 
@@ -100,7 +100,7 @@ void test(Registration& reg, const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& tar
   t2 = std::chrono::high_resolution_clock::now();
   double reuse = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count() / 1e6;
 
-  std::cout << "100times_reuse:" << reuse << "[msec] fitness_score:" << fitness_score << std::endl;
+  std::cout << "Avg over 10times_reuse:" << reuse / 10.0 << "[msec] fitness_score:" << fitness_score << std::endl;
 }
 
 /**
@@ -157,25 +157,27 @@ int main(int argc, char** argv) {
   pcl_ndt.setResolution(1.0);
   test_pcl(pcl_ndt, target_cloud, source_cloud);
 
-  std::cout << "--- fgicp_st ---" << std::endl;
-  fast_gicp::FastGICPSingleThread<pcl::PointXYZ, pcl::PointXYZ> fgicp_st;
-  test(fgicp_st, target_cloud, source_cloud);
+  /*
+    std::cout << "--- fgicp_st ---" << std::endl;
+    fast_gicp::FastGICPSingleThread<pcl::PointXYZ, pcl::PointXYZ> fgicp_st;
+    test(fgicp_st, target_cloud, source_cloud);
 
-  std::cout << "--- fgicp_mt ---" << std::endl;
-  fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ> fgicp_mt;
-  // fast_gicp uses all the CPU cores by default
-  // fgicp_mt.setNumThreads(8);
-  test(fgicp_mt, target_cloud, source_cloud);
+    std::cout << "--- fgicp_mt ---" << std::endl;
+    fast_gicp::FastGICP<pcl::PointXYZ, pcl::PointXYZ> fgicp_mt;
+    // fast_gicp uses all the CPU cores by default
+    // fgicp_mt.setNumThreads(8);
+    test(fgicp_mt, target_cloud, source_cloud);
 
-  std::cout << "--- vgicp_st ---" << std::endl;
-  fast_gicp::FastVGICP<pcl::PointXYZ, pcl::PointXYZ> vgicp;
-  vgicp.setResolution(1.0);
-  vgicp.setNumThreads(1);
-  test(vgicp, target_cloud, source_cloud);
+    std::cout << "--- vgicp_st ---" << std::endl;
+    fast_gicp::FastVGICP<pcl::PointXYZ, pcl::PointXYZ> vgicp;
+    vgicp.setResolution(1.0);
+    vgicp.setNumThreads(1);
+    test(vgicp, target_cloud, source_cloud);
 
-  std::cout << "--- vgicp_mt ---" << std::endl;
-  vgicp.setNumThreads(omp_get_max_threads());
-  test(vgicp, target_cloud, source_cloud);
+    std::cout << "--- vgicp_mt ---" << std::endl;
+    vgicp.setNumThreads(omp_get_max_threads());
+    test(vgicp, target_cloud, source_cloud);
+  */
 
 #ifdef USE_VGICP_CUDA
   std::cout << "--- ndt_cuda (P2D) ---" << std::endl;
@@ -188,13 +190,15 @@ int main(int argc, char** argv) {
   ndt_cuda.setDistanceMode(fast_gicp::NDTDistanceMode::D2D);
   test(ndt_cuda, target_cloud, source_cloud);
 
-  std::cout << "--- vgicp_cuda (parallel_kdtree) ---" << std::endl;
   fast_gicp::FastVGICPCuda<pcl::PointXYZ, pcl::PointXYZ> vgicp_cuda;
   vgicp_cuda.setResolution(1.0);
+  /*
   // vgicp_cuda uses CPU-based parallel KDTree in covariance estimation by default
   // on a modern CPU, it is faster than GPU_BRUTEFORCE
-  // vgicp_cuda.setNearestNeighborSearchMethod(fast_gicp::NearestNeighborMethod::CPU_PARALLEL_KDTREE);
+  std::cout << "--- vgicp_cuda (parallel_kdtree) ---" << std::endl;
+  vgicp_cuda.setNearestNeighborSearchMethod(fast_gicp::NearestNeighborMethod::CPU_PARALLEL_KDTREE);
   test(vgicp_cuda, target_cloud, source_cloud);
+  */
 
   std::cout << "--- vgicp_cuda (gpu_bruteforce) ---" << std::endl;
   // use GPU-based bruteforce nearest neighbor search for covariance estimation

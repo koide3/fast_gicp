@@ -52,6 +52,8 @@ public:
   void setInitialLambdaFactor(double init_lambda_factor);
   void setDebugPrint(bool lm_debug_print);
 
+  int getFinalNumIterations() { return nr_iterations_; }
+
   const Eigen::Matrix<double, 6, 6>& getFinalHessian() const;
 
   double evaluateCost(const Eigen::Matrix4f& relative_pose, Eigen::Matrix<double, 6, 6>* H = nullptr, Eigen::Matrix<double, 6, 1>* b = nullptr);

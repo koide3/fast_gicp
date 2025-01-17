@@ -1,5 +1,5 @@
-load("//bazel/rules/cc:defs.bzl", "cc_binary", "cc_library")
 load("@ark//bazel/rules/cuda:defs.bzl", "cuda_binary", "cuda_library", "cuda_test")
+load("//bazel/rules/cc:defs.bzl", "cc_binary", "cc_library")
 
 cc_library(
     name = "fast_gicp",

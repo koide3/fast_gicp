@@ -103,6 +103,10 @@ if(BUILD_PYTHON_BINDINGS)
   target_link_libraries(pygicp PRIVATE
     fast_gicp
   )
+  set_target_properties(pygicp PROPERTIES
+    INSTALL_RPATH "$ORIGIN/"
+    BUILD_WITH_INSTALL_RPATH TRUE
+  )
 endif()
 
 ### CUDA ###

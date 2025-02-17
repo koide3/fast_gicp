@@ -91,7 +91,7 @@ endif()
 
 ### Python bindings ###
 if(BUILD_PYTHON_BINDINGS)
-  add_subdirectory(thirdparty/pybind11)
+  find_package(pybind11 CONFIG)
   pybind11_add_module(pygicp
     src/python/main.cpp
   )

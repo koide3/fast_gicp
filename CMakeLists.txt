@@ -191,4 +191,9 @@ elseif (ament_cmake_FOUND)
       DIRECTORY "include/"
       DESTINATION include
     )
+
+  if (BUILD_apps)
+    install(TARGETS  gicp_align gicp_kitti
+       DESTINATION lib/${PROJECT_NAME})
+  endif()
 endif()

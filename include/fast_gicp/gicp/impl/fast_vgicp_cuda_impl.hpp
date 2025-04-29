@@ -50,6 +50,11 @@ void FastVGICPCuda<PointSource, PointTarget>::setKernelWidth(double kernel_width
   vgicp_cuda_->set_kernel_params(kernel_width, max_dist);
 }
 
+template <typename PointSource, typename PointTarget>
+void FastVGICPCuda<PointSource, PointTarget>::setPolyParams(double alpha, double constant, int degree) {
+  vgicp_cuda_->set_poly_params(alpha, constant, degree);
+}
+
 template<typename PointSource, typename PointTarget>
 void FastVGICPCuda<PointSource, PointTarget>::setRegularizationMethod(RegularizationMethod method) {
   regularization_method_ = method;
@@ -107,6 +112,19 @@ void FastVGICPCuda<PointSource, PointTarget>::setInputSource(const PointCloudSou
     case NearestNeighborMethod::GPU_RBF_KERNEL:
       vgicp_cuda_->calculate_source_covariances_rbf(regularization_method_);
       break;
+    case NearestNeighborMethod::GPU_POLY_KERNEL:
+      vgicp_cuda_->calculate_source_covariances_polynomial(regularization_method_);
+      break;
+    case NearestNeighborMethod::GPU_HISTOGRAM_KERNEL:
+      vgicp_cuda_->calculate_source_covariances_histogram_intersection(regularization_method_);
+      break;
+    case NearestNeighborMethod::GPU_LAPLACIAN_KERNEL:
+      vgicp_cuda_->calculate_source_covariances_laplacian(regularization_method_);
+      break;
+    case NearestNeighborMethod::GPU_GAUSSIAN_KERNEL:
+      vgicp_cuda_->calculate_source_covariances_gaussian(regularization_method_);
+      break;
+
   }
 }
 
@@ -136,6 +154,19 @@ void FastVGICPCuda<PointSource, PointTarget>::setInputTarget(const PointCloudTar
     case NearestNeighborMethod::GPU_RBF_KERNEL:
       vgicp_cuda_->calculate_target_covariances_rbf(regularization_method_);
       break;
+    case NearestNeighborMethod::GPU_POLY_KERNEL:
+      vgicp_cuda_->calculate_target_covariances_polynomial(regularization_method_);
+      break;
+    case NearestNeighborMethod::GPU_HISTOGRAM_KERNEL:
+      vgicp_cuda_->calculate_target_covariances_histogram_intersection(regularization_method_);
+      break;
+    case NearestNeighborMethod::GPU_LAPLACIAN_KERNEL:
+      vgicp_cuda_->calculate_target_covariances_laplacian(regularization_method_);
+      break;
+    case NearestNeighborMethod::GPU_GAUSSIAN_KERNEL:
+      vgicp_cuda_->calculate_target_covariances_gaussian(regularization_method_);
+      break;
+
   }
   vgicp_cuda_->create_target_voxelmap();
 }

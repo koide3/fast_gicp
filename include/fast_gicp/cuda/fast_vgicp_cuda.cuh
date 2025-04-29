@@ -39,6 +39,7 @@ public:
 
   void set_resolution(double resolution);
   void set_kernel_params(double kernel_width, double kernel_max_dist);
+  void set_poly_params(double alpha, double constant, int degree);
   void set_neighbor_search_method(fast_gicp::NeighborSearchMethod method, double radius);
 
   void swap_source_and_target();
@@ -55,6 +56,18 @@ public:
 
   void calculate_source_covariances_rbf(RegularizationMethod method);
   void calculate_target_covariances_rbf(RegularizationMethod method);
+
+  void calculate_source_covariances_polynomial(RegularizationMethod method);
+  void calculate_target_covariances_polynomial(RegularizationMethod method);
+
+  void calculate_source_covariances_histogram_intersection(RegularizationMethod method);
+  void calculate_target_covariances_histogram_intersection(RegularizationMethod method);
+
+  void calculate_source_covariances_laplacian(RegularizationMethod method);
+  void calculate_target_covariances_laplacian(RegularizationMethod method);
+
+  void calculate_source_covariances_gaussian(RegularizationMethod method);
+  void calculate_target_covariances_gaussian(RegularizationMethod method);
 
   void get_source_covariances(std::vector<Eigen::Matrix3f, Eigen::aligned_allocator<Eigen::Matrix3f>>& covs) const;
   void get_target_covariances(std::vector<Eigen::Matrix3f, Eigen::aligned_allocator<Eigen::Matrix3f>>& covs) const;
@@ -74,6 +87,10 @@ public:
   double resolution;
   double kernel_width;
   double kernel_max_dist;
+  double alpha;
+  double constant;
+  int degree;
+
   std::unique_ptr<VoxelCoordinates> offsets;
 
   std::unique_ptr<Points> source_points;

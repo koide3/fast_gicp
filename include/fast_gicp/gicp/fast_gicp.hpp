@@ -16,8 +16,8 @@ namespace fast_gicp {
 /**
  * @brief Fast GICP algorithm optimized for multi threading with OpenMP
  */
-template<typename PointSource, typename PointTarget, typename SearchMethodSource = pcl::search::KdTree<PointSource>, typename SearchMethodTarget = pcl::search::KdTree<PointTarget>>
-class FastGICP : public LsqRegistration<PointSource, PointTarget> {
+template<typename PointSource, typename PointTarget, typename SearchMethodSource = pcl::search::KdTree<PointSource>, typename SearchMethodTarget = pcl::search::KdTree<PointTarget>, int Dim = 6>
+class FastGICP : public LsqRegistration<PointSource, PointTarget, Dim> {
 public:
   using Scalar = float;
   using Matrix4 = typename pcl::Registration<PointSource, PointTarget, Scalar>::Matrix4;
